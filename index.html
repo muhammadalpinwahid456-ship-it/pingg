@@ -409,17 +409,193 @@
         </div>
     </section>
 
-    <!-- FIREBASE SCRIPTS - HARUS DI PALING ATAS -->
-    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
-    
-    <!-- FIREBASE CONFIG - SETELAH FIREBASE SCRIPTS -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- AUTH LOGIC - SETELAH CONFIG -->
-    <script src="auth.js"></script>
+    <!-- FIREBASE AUTH -->
+<script type="module">
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// CONFIG FIREBASE
+const firebaseConfig = {
+
+    apiKey: "AIzaSyDz6Lo5LoYRmVpHL9egJUdiZosBBNWa2aA",
+    authDomain: "alvin-f573e.firebaseapp.com",
+    projectId: "alvin-f573e",
+    storageBucket: "alvin-f573e.firebasestorage.app",
+    messagingSenderId: "718704784181",
+    appId: "1:718704784181:web:6bcdf70a5d35bcd875d27c",
+    
+
+};
+
+// INIT
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+
+// ================= REGISTER =================
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const name = document.getElementById("registerName").value;
+    const email = document.getElementById("registerEmail").value;
+    const password = document.getElementById("registerPassword").value;
+    const confirmPassword = document.getElementById("registerConfirmPassword").value;
+
+    if (password !== confirmPassword) {
+        alert("Password tidak sama!");
+        return;
+    }
+
+    try {
+
+        await createUserWithEmailAndPassword(auth, email, password);
+
+        alert("Akun berhasil dibuat!");
+
+        document.getElementById("profileName").textContent = name;
+        document.getElementById("profileEmail").textContent = email;
+        document.getElementById("profileDate").textContent =
+            new Date().toLocaleDateString();
+
+        switchTab("profile");
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+
+});
+
+
+// ================= LOGIN =================
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    try {
+
+        await signInWithEmailAndPassword(auth, email, password);
+
+        alert("Login berhasil!");
+
+        document.getElementById("profileEmail").textContent = email;
+
+        switchTab("profile");
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+
+});
+
+
+// ================= LOGIN GOOGLE =================
+window.signUpWithGoogle = async function () {
+
+    try {
+
+        const result = await signInWithPopup(auth, provider);
+
+        document.getElementById("profileName").textContent =
+            result.user.displayName;
+
+        document.getElementById("profileEmail").textContent =
+            result.user.email;
+
+        document.getElementById("profileDate").textContent =
+            new Date().toLocaleDateString();
+
+        alert("Login Google berhasil!");
+
+        switchTab("profile");
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+
+};
+
+
+// ================= LOGOUT =================
+window.logout = async function () {
+
+    await signOut(auth);
+
+    alert("Logout berhasil!");
+
+    switchTab("login");
+
+};
+
+
+// ================= AUTH STATUS =================
+onAuthStateChanged(auth, (user) => {
+
+    const authBtn = document.getElementById("headerAuthBtn");
+
+    if (user) {
+
+        authBtn.textContent = "PROFILE";
+
+    } else {
+
+        authBtn.textContent = "SIGNING";
+
+    }
+
+});
+
+
+// ================= MODAL =================
+window.toggleAuthModal = function () {
+
+    document.getElementById("authModal").classList.toggle("active");
+
+};
+
+
+// ================= SWITCH TAB =================
+window.switchTab = function (tab) {
+
+    document.querySelectorAll(".auth-tab").forEach((el) => {
+        el.classList.remove("active");
+    });
+
+    if (tab === "login") {
+        document.getElementById("loginTab").classList.add("active");
+    }
+
+    if (tab === "register") {
+        document.getElementById("registerTab").classList.add("active");
+    }
+
+    if (tab === "profile") {
+        document.getElementById("profileTab").classList.add("active");
+    }
+
+};
+
+</script>
     <!-- SPLINE VIEWER -->
     <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.84/build/spline-viewer.js"></script>
     
