@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALVIN</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <img class="image-gradient" src="gradient.png" alt="gradient">
+    <div class="layer-blur"></div>
+
+    <div class="container">
+        <header>
+            <h1 class="logo">ALVIN</h1>
+
+            <nav>
+                <a href="#company">COMPANY</a>
+                <a href="#feature">FEATURES</a>
+                <a href="#fav-songs">FAV SONGS</a>
+                <a href="#docs">DOCS</a>
+            </nav>
+        
+            <button class="btn-signing" id="headerAuthBtn" onclick="toggleAuthModal()">SIGNING</button>
+        </header>
+
+        <main id="home">
+            <div class="content">
+                <div class="tag-box">
+                    <div class="tag" onclick="document.getElementById('introducing').scrollIntoView({behavior: 'smooth'})">INTRODUCING &wedbar;</div>
+                </div>
+
+                <h1>JOIN<br>MEMBER</h1>  
+                
+                <p class="description">
+                    kalo timpa stiker dipikir mas,btw kalo pengen join member boleh klik yang dibawah ini yah😹
+                </p>
+
+                <div class="buttons">
+                    <a href="#docs" class="btn-get-started">Documentation &gt;</a>
+                    <a href="#signup" class="btn-signing-main">Getstared &gt;</a>
+                </div>
+            </div>
+            
+            <spline-viewer class="robot-3d" url="https://prod.spline.design/Yq9bzuRTr5fLeIjm/scene.splinecode"></spline-viewer>
+        </main>
+    </div>
+
+    <!-- AUTH MODAL -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-content">
+            <button class="close-modal" onclick="toggleAuthModal()">✕</button>
+
+            <!-- LOGIN TAB -->
+            <div class="auth-tab active" id="loginTab">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="Masukkan email Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Masukkan password Anda" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Login</button>
+                </form>
+                <div class="tab-switcher">
+                    Belum punya akun? <a onclick="switchTab('register')">Daftar di sini</a>
+                </div>
+            </div>
+
+            <!-- REGISTER TAB -->
+            <div class="auth-tab" id="registerTab">
+                <h2>Daftar Akun</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerName">Nama Lengkap</label>
+                        <input type="text" id="registerName" placeholder="Masukkan nama Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="Masukkan email Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="Buat password yang kuat" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">Konfirmasi Password</label>
+                        <input type="password" id="registerConfirmPassword" placeholder="Konfirmasi password" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Daftar</button>
+                </form>
+                <div class="tab-switcher">
+                    Sudah punya akun? <a onclick="switchTab('login')">Login di sini</a>
+                </div>
+            </div>
+
+            <!-- PROFILE TAB -->
+            <div class="auth-tab" id="profileTab">
+                <h2>Profil Saya</h2>
+                <div class="profile-info">
+                    <p><strong>Nama:</strong> <span id="profileName"></span></p>
+                    <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+                    <p><strong>Terdaftar:</strong> <span id="profileDate"></span></p>
+                </div>
+                <button class="btn-submit btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTRODUCING SECTION -->
+    <section id="introducing" class="section">
+        <h2>INTRODUCING ALPINcode</h2>
+        <p>ALPINcode adalah platform revolusioner yang dirancang khusus untuk membawa skill coding Anda ke level selanjutnya. Dengan teknologi terkini dan komunitas developer yang solid, kami memberikan semua yang Anda butuhkan untuk sukses di dunia programming.</p>
+        
+        <h3>Apa itu Coding?</h3>
+        <p>Coding adalah proses menulis instruksi untuk komputer menggunakan bahasa pemrograman. Setiap aplikasi, website, dan software yang Anda gunakan dibuat melalui coding. Dengan belajar coding, Anda membuka pintu ke berbagai peluang karir dan kesempatan untuk menciptakan inovasi.</p>
+        
+        <h3>Mengapa Belajar Coding?</h3>
+        <ul>
+            <li>💼 Karir Menjanjikan - Developer adalah salah satu profesi paling dicari dengan gaji tinggi</li>
+            <li>🌍 Remote Work - Bekerja dari mana saja di dunia tanpa batasan geografis</li>
+            <li>💡 Kreativitas Tanpa Batas - Wujudkan ide-ide Anda menjadi aplikasi nyata</li>
+            <li>🚀 Terus Berkembang - Industri tech selalu berinovasi dan memberikan tantangan baru</li>
+            <li>🤝 Komunitas Solid - Bergabung dengan jutaan developer di seluruh dunia</li>
+        </ul>
+
+        <h3>Jenis-Jenis Coding</h3>
+        <ul>
+            <li><strong>Frontend Development</strong> - Membuat tampilan website/aplikasi yang user-friendly (HTML, CSS, JavaScript)</li>
+            <li><strong>Backend Development</strong> - Membangun sistem server dan database (Python, Java, Node.js)</li>
+            <li><strong>Full Stack Development</strong> - Menguasai frontend dan backend secara bersamaan</li>
+            <li><strong>Mobile Development</strong> - Mengembangkan aplikasi untuk smartphone (React Native, Flutter)</li>
+            <li><strong>Data Science</strong> - Menganalisis data besar dengan Python dan tools khusus</li>
+            <li><strong>DevOps</strong> - Mengelola infrastruktur dan deployment aplikasi</li>
+        </ul>
+
+        <h3>Mulai Belajar di ALPINcode</h3>
+        <p>Kami menyediakan kurikulum terstruktur, mentor berpengalaman, dan proyek real-world untuk mempercepat pembelajaran Anda. Jangan tunggu lagi, mulai journey coding Anda hari ini!</p>
+        <a href="#signup" class="btn-learn-more">Daftar Sekarang &gt;</a>
+    </section>
+
+    <!-- COMPANY SECTION -->
+    <section id="company" class="section">
+        <h2>COMPANY</h2>
+        <p>ALPINcode adalah platform terdepan untuk developer yang ingin bergabung dengan komunitas global kami. Kami berkomitmen untuk memberikan tools terbaik dan support penuh untuk kesuksesan Anda.</p>
+        <p>Misi kami adalah memberdayakan developer di seluruh dunia dengan teknologi dan resources yang mereka butuhkan.</p>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="feature" class="section">
+        <h2>FEATURES</h2>
+        <ul>
+            <li>🚀 Real-time Collaboration - Bekerja sama dengan tim secara real-time</li>
+            <li>🔐 Keamanan Enterprise - Proteksi data dengan enkripsi tingkat enterprise</li>
+            <li>📚 Comprehensive Documentation - Dokumentasi lengkap dan mudah diikuti</li>
+            <li>🎨 Customizable UI - Interface yang dapat disesuaikan dengan kebutuhan Anda</li>
+            <li>⚡ Lightning Fast - Performance optimal untuk produktivitas maksimal</li>
+            <li>🌍 Global Support - Tim support kami siap membantu 24/7</li>
+        </ul>
+    </section>
+
+    <!-- FAV SONGS SECTION -->
+<section id="fav-songs" class="section resources-section">
+    <div class="resources-container">
+        <h2 style="position: absolute; top: -80px; left: 10%; width: 100%;">FAV SONGS</h2>
+            <div class="music-cards-container">
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('nirvana.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>Breed</h4>
+                        <p>Nirvana</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="breed.mp3"></audio>
+                    </div>
+                </div>
+
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('oasis.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>Stand by me</h4>
+                        <p>OASIS</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="Oasis - Stand By Me  Lirik Lagu Terjemahan - Indolirik.mp3"></audio>
+                    </div>
+                </div>
+
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('deftones.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>pink cellphone</h4>
+                        <p>Deftones</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="pink.mp3"></audio>
+                    </div>
+                </div>
+
+               <div class="music-card">
+    <div class="music-card-image" style="background: url('babydoll.jpg') center/cover no-repeat;"></div>
+    <div class="music-card-info">
+        <h4>Babydoll</h4>
+        <p>dominic Fike</p>
+        <div class="progress-bar">
+            <div class="progress" style="width: 0%;"></div>
+        </div>
+        <div class="time-info">
+            <span class="current-time">0:00</span>
+            <span class="duration">0:00</span>
+        </div>
+        <div class="controls">
+            <button onclick="previousTrack(this)">⏮</button>
+            <button onclick="playPause(this)">▶</button>
+            <button onclick="nextTrack(this)">⏭</button>
+            <button onclick="toggleVolume(this)">🔊</button>
+        </div>
+        <audio 
+            preload="metadata" 
+            data-song="babydoll"
+            src="https://res.cloudinary.com/djc9oemca/video/upload/v1778316919/Chappell_Roan_-_Good_Luck_Babe_Official_Lyric_Video_uiafis.mp3">
+        </audio>
+    </div>
+</div>
+            </div>
+
+            <div class="resources-robot">
+                <!-- LYRICS DISPLAY -->
+                <div class="lyrics-container">
+                    <div class="lyrics-display">
+                        <p class="lyrics-text"></p>
+                    </div>
+                </div>
+
+                <spline-viewer url="https://prod.spline.design/vouhb4o3slFtz7EC/scene.splinecode" allow-download="false"></spline-viewer>
+            </div>
+
+            <div class="music-cards-container">
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('1975.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>About You</h4>
+                        <p>The 1975</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="1975.mp3"></audio>
+                    </div>
+                </div>
+
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('nirvana.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>lithium</h4>
+                        <p>nirvana</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="nirvana.mp3.mp3"></audio>
+                    </div>
+                </div>
+
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('monkeys.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>505</h4>
+                        <p>Artic Monkeys</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="505.mp3"></audio>
+                    </div>
+                </div>
+
+                <div class="music-card">
+                    <div class="music-card-image" style="background: url('about.jpg') center/cover no-repeat;"></div>
+                    <div class="music-card-info">
+                        <h4>About a girl</h4>
+                        <p>Nirvana</p>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 0%;"></div>
+                        </div>
+                        <div class="time-info"><span class="current-time">0:00</span> <span class="duration">0:00</span></div>
+                        <div class="controls">
+                            <button onclick="previousTrack(this)">⏮</button>
+                            <button onclick="playPause(this)">▶</button>
+                            <button onclick="nextTrack(this)">⏭</button>
+                            <button onclick="toggleVolume(this)">🔊</button>
+                        </div>
+                        <audio preload="metadata" src="about.mp3"></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DOCS SECTION -->
+    <section id="docs" class="section">
+        <h2>DOCUMENTATION</h2>
+        <p>Dokumentasi lengkap kami mencakup semua yang Anda butuhkan untuk memulai:</p>
+        <ul>
+            <li>🔧 Getting Started - Panduan setup awal untuk pemula</li>
+            <li>📚 API Reference - Referensi lengkap semua API yang tersedia</li>
+            <li>🎯 Best Practices - Praktik terbaik untuk menggunakan platform kami</li>
+            <li>🐛 Troubleshooting - Solusi untuk masalah umum yang mungkin Anda hadapi</li>
+            <li>📝 Changelog - Riwayat update dan fitur terbaru</li>
+        </ul>
+    </section>
+
+    <!-- SIGNUP SECTION -->
+    <section id="signup" class="section signup-section">
+        <div class="signup-wrapper">
+            <div class="signup-container">
+                <h2>Bergabunglah dengan ALPINcode</h2>
+                <p class="signup-subtitle">Daftar sekarang dan mulai perjalanan coding Anda</p>
+
+                <div class="signup-form">
+                    <form>
+                        <div class="form-group">
+                            <label for="name">Nama Lengkap</label>
+                            <input type="text" id="name" name="name" placeholder="Masukkan nama Anda" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="Masukkan email Anda" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" placeholder="Buat password yang kuat" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm-password">Konfirmasi Password</label>
+                            <input type="password" id="confirm-password" name="confirm-password" placeholder="Konfirmasi password Anda" required>
+                        </div>
+
+                        <button type="submit" class="btn-signup">Daftar</button>
+                    </form>
+
+                    <div class="divider">ATAU</div>
+
+                    <button class="btn-google" onclick="signUpWithGoogle()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                        Daftar dengan Google
+                    </button>
+
+                    <p class="login-link">Sudah punya akun? <a href="#login">Login di sini</a></p>
+                </div>
+            </div>
+
+            <div class="signup-robot">
+                <spline-viewer url="https://prod.spline.design/0cg1TsMhrIQ00-fP/scene.splinecode" allow-download="false"></spline-viewer>
+            </div>
+        </div>
+    </section>
+
+    <!-- FIREBASE SCRIPTS - HARUS DI PALING ATAS -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
+    
+    <!-- FIREBASE CONFIG - SETELAH FIREBASE SCRIPTS -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- AUTH LOGIC - SETELAH CONFIG -->
+    <script src="auth.js"></script>
+
+    <!-- SPLINE VIEWER -->
+    <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.84/build/spline-viewer.js"></script>
+    
+    <!-- MUSIK PLAYER SCRIPT - PALING AKHIR -->
+    <script>
+let currentAudio = null;
+
+// Lyrics data untuk setiap lagu
+const lyricsData = {
+    'breed.mp3': [
+        { time: 5, text: 'Wanting to be something more' },
+        { time: 10, text: 'You will always be the same' },
+        { time: 15, text: 'Nothing\'s ever going to change' },
+        { time: 20, text: 'You\'re always gonna be the same' },
+        { time: 25, text: 'Dumb' },
+        { time: 30, text: 'Maybe if you think about it' }
+    ],
+    'Oasis - Stand By Me  Lirik Lagu Terjemahan - Indolirik.mp3': [
+        { time: 3, text: 'Stand by me' },
+        { time: 8, text: 'Won\'t you stand by me' },
+        { time: 13, text: 'If you leave me now you\'ll leave me on my own' },
+        { time: 18, text: 'Stand by me' },
+        { time: 23, text: 'I\'ll be standing here' }
+    ],
+    'pink.mp3': [
+        { time: 4, text: 'Pink cellphone' },
+        { time: 8, text: 'I want to talk to you' },
+        { time: 12, text: 'Let me call you on your pink cellphone' },
+        { time: 16, text: 'I\'ve got some words to tell you' }
+    ],
+    'babydoll.mp3': [
+        { time: 11, text: 'i cant move on' },
+        { time: 13, text: 'babydoll' },
+        { time: 14, text: 'waitin on a call' },
+        { time: 15, text: 'skipping two stations' },
+        { time: 17, text: ' Im hourglass and its outrageous' },
+        { time: 22, text: 'I ll take it all' },
+        { time: 24, text: 'babydoll' },
+        { time: 25, text: 'Whatevers been' },
+        { time: 27, text: 'weighing you down' },
+        { time: 25, text: ' Im hourglass and its outrageous' }
+    ],
+    '1975.mp3': [
+        { time: 6, text: 'About you, it\'s all about you' },
+        { time: 12, text: 'When you turn around and walk away' },
+        { time: 18, text: 'I could never make you stay' },
+        { time: 24, text: 'And it\'ll never be the same' }
+    ],
+    'nirvana.mp3.mp3': [
+        { time: 8, text: 'I\'m so happy' },
+        { time: 16, text: 'Cause today I found my friends' },
+        { time: 24, text: 'They\'re in my head' },
+        { time: 32, text: 'I\'m so ugly, but that\'s okay' }
+    ],
+    '505.mp3': [
+        { time: 10, text: 'But I crumble completely when you cry' },
+        { time: 20, text: 'I swallow the fear but that leaves so much more' },
+        { time: 30, text: 'I\'m broken by all the beautiful things' },
+        { time: 40, text: 'This is how I\'ll be' }
+    ],
+    'about.mp3': [
+        { time: 8, text: 'Dont have a gun' },
+        { time: 16, text: 'Don\'t have a gun' },
+        { time: 24, text: 'I want to have a shotgun' },
+        { time: 32, text: 'Just to start a war' }
+    ]
+};
+
+let lyricsTimeout = null;
+
+function displayLyrics(audio, musicCard) {
+    const lyricsDisplay = document.querySelector('.lyrics-text');
+    const audioSrc = audio.src.split('/').pop();
+    const lyrics = lyricsData[audioSrc] || [];
+    
+    let lastLyricTime = -1;
+    
+    function updateLyrics() {
+        const currentTime = Math.floor(audio.currentTime);
+        
+        // Hanya update jika ada perubahan waktu
+        if (currentTime !== lastLyricTime) {
+            const currentLyric = lyrics.find(l => l.time === currentTime);
+            
+            if (currentLyric) {
+                lyricsDisplay.textContent = currentLyric.text;
+                lyricsDisplay.classList.remove('fade-in');
+                setTimeout(() => lyricsDisplay.classList.add('fade-in'), 10);
+                lastLyricTime = currentTime;
+            }
+        }
+        
+        if (!audio.paused) {
+            lyricsTimeout = setTimeout(updateLyrics, 100);
+        }
+    }
+    
+    updateLyrics();
+}
+
+function playPause(button) {
+    const musicCard = button.closest('.music-card');
+    const audio = musicCard.querySelector('audio');
+    const progress = musicCard.querySelector('.progress');
+    const currentTimeEl = musicCard.querySelector('.current-time');
+    const durationEl = musicCard.querySelector('.duration');
+    const lyricsDisplay = document.querySelector('.lyrics-text');
+    
+    if (audio.paused) {
+        // Stop audio lain
+        if (currentAudio && currentAudio !== audio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            const prevCard = currentAudio.closest('.music-card');
+            prevCard.querySelector('.controls button:nth-child(2)').textContent = '▶';
+        }
+        
+        audio.play();
+        currentAudio = audio;
+        button.textContent = '⏸';
+        
+        // Clear previous lyrics timeout
+        if (lyricsTimeout) clearTimeout(lyricsTimeout);
+        
+        // Display lyrics
+        displayLyrics(audio, musicCard);
+        
+        // Remove old event listeners
+        audio.onloadedmetadata = null;
+        audio.ontimeupdate = null;
+        audio.onended = null;
+        
+        // Add new event listeners
+        audio.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(audio.duration);
+        }, { once: true });
+        
+        audio.addEventListener('timeupdate', () => {
+            const percentage = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percentage + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        });
+        
+        audio.addEventListener('ended', () => {
+            button.textContent = '▶';
+            audio.currentTime = 0;
+            progress.style.width = '0%';
+            currentTimeEl.textContent = '0:00';
+            lyricsDisplay.textContent = '';
+            if (lyricsTimeout) clearTimeout(lyricsTimeout);
+        }, { once: true });
+    } else {
+        audio.pause();
+        button.textContent = '▶';
+        if (lyricsTimeout) clearTimeout(lyricsTimeout);
+    }
+}
+
+function toggleVolume(button) {
+    const audio = button.closest('.music-card').querySelector('audio');
+    if (audio.volume > 0) {
+        audio.volume = 0;
+        button.textContent = '🔇';
+    } else {
+        audio.volume = 1;
+        button.textContent = '🔊';
+    }
+}
+
+function previousTrack(button) {
+    const audio = button.closest('.music-card').querySelector('audio');
+    audio.currentTime = 0;
+}
+
+function nextTrack(button) {
+    const audio = button.closest('.music-card').querySelector('audio');
+    if (audio.src) {
+        audio.currentTime = audio.duration;
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+function signUpWithGoogle() {
+    alert('Fitur Sign Up dengan Google akan segera tersedia!');
+}
+    </script>
+
+</body>
+</html>
