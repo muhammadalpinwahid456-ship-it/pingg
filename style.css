@@ -653,25 +653,26 @@ spline-viewer::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 1000;
     justify-content: center;
     align-items: center;
 }
 
-.auth-modal.show {
+.auth-modal.active {
     display: flex;
 }
 
 .auth-modal-content {
-    background: white;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     padding: 40px;
     border-radius: 15px;
     width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 450px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
     position: relative;
     animation: slideIn 0.3s ease;
+    border: 1px solid #3a3a3a;
 }
 
 @keyframes slideIn {
@@ -694,10 +695,11 @@ spline-viewer::after {
     font-size: 28px;
     cursor: pointer;
     color: #999;
+    transition: color 0.2s ease;
 }
 
 .close-modal:hover {
-    color: #333;
+    color: #e7e7e7;
 }
 
 .auth-tab {
@@ -709,7 +711,7 @@ spline-viewer::after {
 }
 
 .auth-tab h2 {
-    color: #333;
+    color: #e7e7e7;
     margin-bottom: 25px;
     text-align: center;
     font-size: 24px;
@@ -722,81 +724,98 @@ spline-viewer::after {
 .auth-modal .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: #555;
+    color: #aaa;
     font-weight: 500;
+    font-size: 14px;
 }
 
 .auth-modal .form-group input {
     width: 100%;
     padding: 12px;
-    border: 2px solid #ddd;
+    border: 1px solid #444;
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s;
-    background-color: white;
-    color: #333;
+    transition: border-color 0.3s, background-color 0.3s;
+    background-color: #0a0a0a;
+    color: #e7e7e7;
+}
+
+.auth-modal .form-group input::placeholder {
+    color: #666;
 }
 
 .auth-modal .form-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #5300a0;
+    background-color: #111;
+    box-shadow: 0 0 10px rgba(83, 0, 160, 0.3);
 }
 
 .btn-submit {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #5300a0 0%, #7f42a7 100%);
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, opacity 0.2s;
     margin-top: 10px;
 }
 
 .btn-submit:hover {
     transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.btn-submit:active {
+    transform: translateY(0);
 }
 
 .tab-switcher {
     text-align: center;
     margin-top: 20px;
-    color: #666;
+    color: #999;
     font-size: 14px;
 }
 
 .tab-switcher a {
-    color: #667eea;
+    color: #5300a0;
     cursor: pointer;
     font-weight: 600;
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .tab-switcher a:hover {
+    color: #7f42a7;
     text-decoration: underline;
 }
 
 .profile-info {
-    background: #f5f5f5;
+    background: #0a0a0a;
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
+    border: 1px solid #3a3a3a;
 }
 
 .profile-info p {
-    margin: 10px 0;
-    color: #555;
+    margin: 12px 0;
+    color: #ccc;
     font-size: 14px;
 }
 
 .profile-info strong {
-    color: #333;
+    color: #5300a0;
+    font-weight: 600;
 }
 
 .btn-logout {
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important;
+    color: white !important;
 }
 
 .btn-logout:hover {
@@ -860,6 +879,7 @@ spline-viewer::after {
     .auth-modal-content {
         width: 90%;
         padding: 30px 20px;
+        max-width: 100%;
     }
     
     .auth-tab h2 {
