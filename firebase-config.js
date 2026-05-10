@@ -6,7 +6,8 @@ const firebaseConfig = {
     storageBucket: "alvin-f573e.firebasestorage.app",
     messagingSenderId: "718704784181",
     appId: "1:718704784181:web:db5fe912a3cb3b0675d27c",
-    measurementId: "G-NHLWBMV307"
+    measurementId: "G-NHLWBMV307",
+    databaseURL: "https://alvin-f573e-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Initialize Firebase
