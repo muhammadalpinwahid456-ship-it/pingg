@@ -105,8 +105,8 @@
                     <p><strong>Email:</strong> <span id="profileEmail"></span></p>
                     <p><strong>Terdaftar:</strong> <span id="profileDate"></span></p>
                 </div>
-                <button class="btn-submit btn-edit-profile" onclick="toggleEditProfile()">Edit Profil</button>
-                <button class="btn-submit btn-logout" onclick="logout()" style="margin-top: 0.5rem;">Logout</button>
+                <button type="button" class="btn-submit btn-edit-profile" onclick="toggleEditProfile()">Edit Profil</button>
+                <button type="button" class="btn-submit btn-logout" onclick="logout()" style="margin-top: 0.5rem;">Logout</button>
             </div>
 
             <!-- EDIT PROFILE TAB -->
@@ -303,6 +303,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        currentUserId = user.uid;
 
         // Simpan data user ke database
         await set(ref(database, 'users/' + user.uid), {
@@ -369,14 +370,12 @@ window.signUpWithGoogle = async function () {
                 email: user.email,
                 createdAt: new Date().toISOString()
             });
+            document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
         } else {
             const userData = snapshot.val();
             document.getElementById("profileName").textContent = userData.fullname;
-            document.getElementById("profileEmail").textContent = userData.email;
-            document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
         }
-
-        document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
+        
         document.getElementById("profileEmail").textContent = user.email;
         document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
         alert("Login Google berhasil!");
@@ -396,7 +395,7 @@ window.logout = async function () {
     }
 };
 
-// ================= EDIT PROFILE =================
+// ================= TOGGLE EDIT PROFILE =================
 window.toggleEditProfile = function() {
     const profileTab = document.getElementById("profileTab");
     const editProfileTab = document.getElementById("editProfileTab");
@@ -414,30 +413,46 @@ window.toggleEditProfile = function() {
     }
 };
 
-document.getElementById("editProfileForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    if (!currentUserId) {
-        alert("User tidak ditemukan!");
-        return;
-    }
+// ================= EDIT PROFILE FORM =================
+const editProfileForm = document.getElementById("editProfileForm");
+if (editProfileForm) {
+    editProfileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        if (!currentUserId) {
+            alert("❌ User tidak ditemukan!");
+            return;
+        }
 
-    const newName = document.getElementById("editName").value;
+        const newName = document.getElementById("editName").value.trim();
 
-    try {
-        const userRef = ref(database, 'users/' + currentUserId);
-        await update(userRef, {
-            fullname: newName
-        });
+        if (!newName) {
+            alert("⚠️ Nama tidak boleh kosong!");
+            return;
+        }
 
-        document.getElementById("profileName").textContent = newName;
-        alert("✅ Profil berhasil diperbarui!");
-        toggleEditProfile();
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        alert("❌ Gagal memperbarui profil: " + error.message);
-    }
-});
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+
+        try {
+            const userRef = ref(database, 'users/' + currentUserId);
+            await update(userRef, {
+                fullname: newName
+            });
+
+            document.getElementById("profileName").textContent = newName;
+            alert("✅ Profil berhasil diperbarui!");
+            toggleEditProfile();
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            alert("❌ Gagal memperbarui profil: " + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Simpan Perubahan';
+        }
+    });
+}
 
 // ================= AUTH STATUS =================
 onAuthStateChanged(auth, (user) => {
