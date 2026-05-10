@@ -158,7 +158,26 @@
         let allUsers = [];
         let currentUserName = '';
 
-        // Check auth status
+        // ===== HELPER FUNCTIONS (PERBAIKAN) =====
+        function generateChatId(userId1, userId2) {
+            const ids = [userId1, userId2].sort();
+            return `${ids[0]}_${ids[1]}`;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== AUTH CHECK =====
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -307,6 +326,9 @@
                 senderName: currentUserName,
                 text: text,
                 timestamp: Date.now()
+            }).catch((error) => {
+                console.error('Error sending message:', error);
+                alert('Gagal mengirim pesan: ' + error.message);
             });
 
             messageInput.value = '';
@@ -433,42 +455,36 @@
             });
         };
 
-        // Logout
+        // ===== LOGOUT (PERBAIKAN: DITAMBAH KONFIRMASI) =====
         window.logoutChat = function() {
-            signOut(auth).then(() => {
-                window.location.href = 'index.html';
-            });
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                signOut(auth).then(() => {
+                    window.location.href = 'index.html';
+                }).catch((error) => {
+                    console.error('Error saat logout:', error);
+                    alert('Error saat logout: ' + error.message);
+                });
+            }
         };
 
-        // Debug users
+        // ===== DEBUG USERS (PERBAIKAN: BETTER ERROR HANDLING) =====
         window.debugUsers = async function() {
             try {
                 const usersRef = ref(database, 'users');
                 const snapshot = await get(usersRef);
                 if (snapshot.exists()) {
-                    console.log('All users in database:', snapshot.val());
-                    alert('Check console for users data');
+                    const userData = snapshot.val();
+                    const userCount = Object.keys(userData).length;
+                    console.log('All users in database:', userData);
+                    alert(`📊 Total users: ${userCount}\n\nBuka Console (F12) untuk melihat detail lengkap`);
                 } else {
-                    alert('No users found in database');
+                    alert('❌ Belum ada pengguna terdaftar di database');
                 }
             } catch (error) {
                 console.error('Debug error:', error);
-                alert('Error: ' + error.message);
+                alert('❌ Error: ' + error.message);
             }
         };
-
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${hours}:${minutes}`;
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
 
     </script>
 </body>
