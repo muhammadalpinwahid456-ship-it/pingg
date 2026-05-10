@@ -354,16 +354,24 @@ window.logout = async function () {
     switchTab("login");
 };
 
-// ================= AUTH STATUS =================
+// ================= AUTH STATUS (PERBAIKAN) =================
 onAuthStateChanged(auth, (user) => {
     const authBtn = document.getElementById("headerAuthBtn");
     if (user) {
         authBtn.textContent = "PROFILE";
+        // PERBAIKAN: Ubah onclick untuk membuka Profile Tab
+        authBtn.onclick = function() {
+            document.getElementById("authModal").classList.add("active");
+            document.querySelectorAll(".auth-tab").forEach(tab => {
+                tab.classList.remove("active");
+            });
+            document.getElementById("profileTab").classList.add("active");
+        };
     } else {
         authBtn.textContent = "SIGNING";
+        authBtn.onclick = toggleAuthModal;
     }
 });
-
 // ================= MODAL =================
 window.toggleAuthModal = function () {
     document.getElementById("authModal").classList.toggle("active");
