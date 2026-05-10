@@ -265,32 +265,7 @@ const auth = getAuth(app);
 const database = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
-// ================= TOGGLE AUTH MODAL =================
-window.toggleAuthModal = function() {
-    const modal = document.getElementById("authModal");
-    if (modal) {
-        modal.classList.toggle("active");
-    }
-};
-
-// ================= SWITCH TAB =================
-window.switchTab = function(tab) {
-    document.querySelectorAll(".auth-tab").forEach((el) => {
-        el.classList.remove("active");
-    });
-
-    if (tab === "login") {
-        document.getElementById("loginTab").classList.add("active");
-    }
-    if (tab === "register") {
-        document.getElementById("registerTab").classList.add("active");
-    }
-    if (tab === "profile") {
-        document.getElementById("profileTab").classList.add("active");
-    }
-};
-
-// ================= REGISTER (PERBAIKAN) =================
+// ================= REGISTER =================
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -300,7 +275,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     const confirmPassword = document.getElementById("registerConfirmPassword").value;
 
     if (password !== confirmPassword) {
-        alert("❌ Password tidak sama!");
+        alert("Password tidak sama!");
         return;
     }
 
@@ -315,27 +290,20 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
             createdAt: new Date().toISOString()
         });
 
-        alert("✅ Akun berhasil dibuat!");
+        alert("Akun berhasil dibuat!");
 
-        // Reset form
-        document.getElementById("registerForm").reset();
-        
-        // Pindah ke login tab
-        switchTab("login");
+        document.getElementById("profileName").textContent = name;
+        document.getElementById("profileEmail").textContent = email;
+        document.getElementById("profileDate").textContent = new Date().toLocaleDateString();
+
+        switchTab("profile");
 
     } catch (error) {
-        console.error('Register error:', error);
-        if (error.code === 'auth/email-already-in-use') {
-            alert("❌ Email sudah terdaftar");
-        } else if (error.code === 'auth/weak-password') {
-            alert("❌ Password terlalu lemah");
-        } else {
-            alert("❌ Error: " + error.message);
-        }
+        alert(error.message);
     }
 });
 
-// ================= LOGIN (PERBAIKAN: LOAD DATA DARI DATABASE) =================
+// ================= LOGIN =================
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -343,39 +311,12 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const password = document.getElementById("loginPassword").value;
 
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        // PERBAIKAN: Tunggu data ter-load dari database
-        const userRef = ref(database, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-        
-        if (snapshot.exists()) {
-            const userData = snapshot.val();
-            document.getElementById("profileName").textContent = userData.fullname;
-            document.getElementById("profileEmail").textContent = userData.email;
-            document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
-        } else {
-            // Jika data tidak ada, gunakan default
-            const name = user.displayName || email.split('@')[0];
-            document.getElementById("profileName").textContent = name;
-            document.getElementById("profileEmail").textContent = email;
-            document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
-        }
-        
-        alert("✅ Login berhasil!");
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("Login berhasil!");
+        document.getElementById("profileEmail").textContent = email;
         switchTab("profile");
-        document.getElementById("loginForm").reset();
-        
     } catch (error) {
-        console.error('Login error:', error);
-        if (error.code === 'auth/user-not-found') {
-            alert("❌ Email tidak terdaftar");
-        } else if (error.code === 'auth/wrong-password') {
-            alert("❌ Password salah");
-        } else {
-            alert("❌ Error: " + error.message);
-        }
+        alert(error.message);
     }
 });
 
@@ -396,70 +337,29 @@ window.signUpWithGoogle = async function () {
             });
         }
 
-        // Load data profile
-        const userData = snapshot.exists() ? snapshot.val() : {
-            fullname: user.displayName || user.email.split('@')[0],
-            email: user.email,
-            createdAt: new Date().toISOString()
-        };
-
-        document.getElementById("profileName").textContent = userData.fullname;
-        document.getElementById("profileEmail").textContent = userData.email;
-        document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
-        
-        alert("✅ Login Google berhasil!");
+        document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
+        document.getElementById("profileEmail").textContent = user.email;
+        document.getElementById("profileDate").textContent = new Date().toLocaleDateString();
+        alert("Login Google berhasil!");
         switchTab("profile");
     } catch (error) {
-        console.error('Google login error:', error);
-        alert("❌ Error: " + error.message);
+        alert(error.message);
     }
 };
 
-// ================= LOGOUT (PERBAIKAN) =================
+// ================= LOGOUT =================
 window.logout = async function () {
-    if (confirm('Apakah Anda yakin ingin logout?')) {
-        try {
-            await signOut(auth);
-            alert("✅ Logout berhasil!");
-            document.getElementById("headerAuthBtn").textContent = "SIGNING";
-            document.getElementById("authModal").classList.remove("active");
-            switchTab("login");
-            window.location.reload();
-        } catch (error) {
-            console.error('Logout error:', error);
-            alert("❌ Error logout: " + error.message);
-        }
-    }
+    await signOut(auth);
+    alert("Logout berhasil!");
+    switchTab("login");
 };
 
-// ================= AUTH STATUS (PERBAIKAN: LOAD PROFILE DATA) =================
-onAuthStateChanged(auth, async (user) => {
+// ================= AUTH STATUS (PERBAIKAN) =================
+onAuthStateChanged(auth, (user) => {
     const authBtn = document.getElementById("headerAuthBtn");
     if (user) {
         authBtn.textContent = "PROFILE";
-        
-        // PERBAIKAN: Load data dari database saat auth berubah
-        try {
-            const userRef = ref(database, 'users/' + user.uid);
-            const snapshot = await get(userRef);
-            
-            if (snapshot.exists()) {
-                const userData = snapshot.val();
-                document.getElementById("profileName").textContent = userData.fullname;
-                document.getElementById("profileEmail").textContent = userData.email;
-                document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
-            } else {
-                // Default jika tidak ada data
-                const name = user.displayName || user.email.split('@')[0];
-                document.getElementById("profileName").textContent = name;
-                document.getElementById("profileEmail").textContent = user.email;
-                document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
-            }
-        } catch (error) {
-            console.error('Error loading profile:', error);
-        }
-        
-        // Klik PROFILE untuk membuka Profile Tab
+        // PERBAIKAN: Ubah onclick untuk membuka Profile Tab
         authBtn.onclick = function() {
             document.getElementById("authModal").classList.add("active");
             document.querySelectorAll(".auth-tab").forEach(tab => {
@@ -472,6 +372,27 @@ onAuthStateChanged(auth, async (user) => {
         authBtn.onclick = toggleAuthModal;
     }
 });
+// ================= MODAL =================
+window.toggleAuthModal = function () {
+    document.getElementById("authModal").classList.toggle("active");
+};
+
+// ================= SWITCH TAB =================
+window.switchTab = function (tab) {
+    document.querySelectorAll(".auth-tab").forEach((el) => {
+        el.classList.remove("active");
+    });
+
+    if (tab === "login") {
+        document.getElementById("loginTab").classList.add("active");
+    }
+    if (tab === "register") {
+        document.getElementById("registerTab").classList.add("active");
+    }
+    if (tab === "profile") {
+        document.getElementById("profileTab").classList.add("active");
+    }
+};
 
 </script>
 

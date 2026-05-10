@@ -794,8 +794,9 @@ spline-viewer::after {
     text-decoration: underline;
 }
 
+/* ===== PROFILE INFO (PERBAIKAN) ===== */
 .profile-info {
-    background: #0a0a0a;
+    background: #ebf0f0;
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -804,13 +805,17 @@ spline-viewer::after {
 
 .profile-info p {
     margin: 12px 0;
-    color: #ccc;
+    color: #e7e7e7;
     font-size: 14px;
 }
 
 .profile-info strong {
-    color: #5300a0;
+    color: #a8c5ff;
     font-weight: 600;
+}
+
+.profile-info span {
+    color: #e7e7e7;
 }
 
 .btn-logout {
