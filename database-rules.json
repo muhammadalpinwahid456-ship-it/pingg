@@ -6,7 +6,7 @@
         ".write": "$uid === auth.uid",
         ".validate": "newData.hasChildren(['fullname', 'email', 'createdAt'])",
         "fullname": {
-          ".validate": "newData.isString() && newData.val().length > 0"
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
         },
         "email": {
           ".validate": "newData.isString() && newData.val().contains('@')"

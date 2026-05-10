@@ -121,7 +121,7 @@
                         <label for="editEmail">Email (Tidak dapat diubah)</label>
                         <input type="email" id="editEmail" placeholder="Email Anda" disabled>
                     </div>
-                    <button type="submit" class="btn-submit">Simpan Perubahan</button>
+                    <button type="submit" class="btn-submit" id="editSubmitBtn">Simpan Perubahan</button>
                     <button type="button" class="btn-submit" onclick="toggleEditProfile()" style="background: #999; margin-top: 0.5rem;">Batal</button>
                 </form>
             </div>
@@ -420,7 +420,8 @@ if (editProfileForm) {
         e.preventDefault();
         
         if (!currentUserId) {
-            alert("❌ User tidak ditemukan!");
+            alert("❌ User tidak ditemukan! Silakan login ulang.");
+            console.error("currentUserId is null");
             return;
         }
 
@@ -431,25 +432,48 @@ if (editProfileForm) {
             return;
         }
 
-        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (newName.length < 3) {
+            alert("⚠️ Nama minimal 3 karakter!");
+            return;
+        }
+
+        const submitBtn = document.getElementById("editSubmitBtn");
+        const originalText = submitBtn.textContent;
+        
         submitBtn.disabled = true;
         submitBtn.textContent = 'Menyimpan...';
 
         try {
+            console.log('🔄 Updating profile for user:', currentUserId);
             const userRef = ref(database, 'users/' + currentUserId);
+            
             await update(userRef, {
                 fullname: newName
             });
 
+            console.log('✅ Profile updated successfully');
             document.getElementById("profileName").textContent = newName;
             alert("✅ Profil berhasil diperbarui!");
-            toggleEditProfile();
+            
+            // Tunggu sebentar lalu toggle
+            setTimeout(() => {
+                toggleEditProfile();
+            }, 500);
         } catch (error) {
-            console.error("Error updating profile:", error);
-            alert("❌ Gagal memperbarui profil: " + error.message);
+            console.error("❌ Error updating profile:", error);
+            console.error("Error code:", error.code);
+            console.error("Error message:", error.message);
+            
+            if (error.code === 'PERMISSION_DENIED') {
+                alert("❌ Tidak memiliki izin untuk mengubah profil. Silakan login ulang.");
+            } else if (error.code === 'DATABASE_URL_INVALID') {
+                alert("❌ Konfigurasi database tidak valid.");
+            } else {
+                alert("❌ Gagal memperbarui profil: " + error.message);
+            }
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Simpan Perubahan';
+            submitBtn.textContent = originalText;
         }
     });
 }
@@ -459,6 +483,7 @@ onAuthStateChanged(auth, (user) => {
     const authBtn = document.getElementById("headerAuthBtn");
     if (user) {
         currentUserId = user.uid;
+        console.log('👤 User authenticated:', user.email);
         authBtn.textContent = "PROFILE";
         authBtn.onclick = function() {
             document.getElementById("authModal").classList.add("active");
@@ -469,6 +494,7 @@ onAuthStateChanged(auth, (user) => {
         };
     } else {
         currentUserId = null;
+        console.log('🔐 User not authenticated');
         authBtn.textContent = "SIGNING";
         authBtn.onclick = toggleAuthModal;
     }
