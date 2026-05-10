@@ -105,7 +105,25 @@
                     <p><strong>Email:</strong> <span id="profileEmail"></span></p>
                     <p><strong>Terdaftar:</strong> <span id="profileDate"></span></p>
                 </div>
-                <button class="btn-submit btn-logout" onclick="logout()">Logout</button>
+                <button class="btn-submit btn-edit-profile" onclick="toggleEditProfile()">Edit Profil</button>
+                <button class="btn-submit btn-logout" onclick="logout()" style="margin-top: 0.5rem;">Logout</button>
+            </div>
+
+            <!-- EDIT PROFILE TAB -->
+            <div class="auth-tab" id="editProfileTab">
+                <h2>Edit Profil</h2>
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label for="editName">Nama Lengkap</label>
+                        <input type="text" id="editName" placeholder="Masukkan nama Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmail">Email (Tidak dapat diubah)</label>
+                        <input type="email" id="editEmail" placeholder="Email Anda" disabled>
+                    </div>
+                    <button type="submit" class="btn-submit">Simpan Perubahan</button>
+                    <button type="button" class="btn-submit" onclick="toggleEditProfile()" style="background: #999; margin-top: 0.5rem;">Batal</button>
+                </form>
             </div>
         </div>
     </div>
@@ -244,7 +262,8 @@ import {
     getDatabase,
     ref,
     set,
-    get
+    get,
+    update
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // CONFIG FIREBASE
@@ -264,6 +283,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 const provider = new GoogleAuthProvider();
+
+let currentUserId = null;
 
 // ================= REGISTER =================
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
@@ -294,7 +315,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 
         document.getElementById("profileName").textContent = name;
         document.getElementById("profileEmail").textContent = email;
-        document.getElementById("profileDate").textContent = new Date().toLocaleDateString();
+        document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
 
         switchTab("profile");
 
@@ -311,9 +332,21 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const password = document.getElementById("loginPassword").value;
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        currentUserId = user.uid;
+
+        // Load data dari database
+        const userRef = ref(database, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+        if (snapshot.exists()) {
+            const userData = snapshot.val();
+            document.getElementById("profileName").textContent = userData.fullname;
+            document.getElementById("profileEmail").textContent = userData.email;
+            document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
+        }
+        
         alert("Login berhasil!");
-        document.getElementById("profileEmail").textContent = email;
         switchTab("profile");
     } catch (error) {
         alert(error.message);
@@ -325,6 +358,7 @@ window.signUpWithGoogle = async function () {
     try {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
+        currentUserId = user.uid;
 
         // Simpan data user ke database jika belum ada
         const userRef = ref(database, 'users/' + user.uid);
@@ -335,11 +369,16 @@ window.signUpWithGoogle = async function () {
                 email: user.email,
                 createdAt: new Date().toISOString()
             });
+        } else {
+            const userData = snapshot.val();
+            document.getElementById("profileName").textContent = userData.fullname;
+            document.getElementById("profileEmail").textContent = userData.email;
+            document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
         }
 
         document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
         document.getElementById("profileEmail").textContent = user.email;
-        document.getElementById("profileDate").textContent = new Date().toLocaleDateString();
+        document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
         alert("Login Google berhasil!");
         switchTab("profile");
     } catch (error) {
@@ -349,17 +388,63 @@ window.signUpWithGoogle = async function () {
 
 // ================= LOGOUT =================
 window.logout = async function () {
-    await signOut(auth);
-    alert("Logout berhasil!");
-    switchTab("login");
+    if (confirm('Apakah Anda yakin ingin logout?')) {
+        await signOut(auth);
+        alert("Logout berhasil!");
+        currentUserId = null;
+        switchTab("login");
+    }
 };
 
-// ================= AUTH STATUS (PERBAIKAN) =================
+// ================= EDIT PROFILE =================
+window.toggleEditProfile = function() {
+    const profileTab = document.getElementById("profileTab");
+    const editProfileTab = document.getElementById("editProfileTab");
+    
+    if (editProfileTab.classList.contains("active")) {
+        // Kembali ke profile
+        profileTab.classList.add("active");
+        editProfileTab.classList.remove("active");
+    } else {
+        // Buka edit profile
+        document.getElementById("editName").value = document.getElementById("profileName").textContent;
+        document.getElementById("editEmail").value = document.getElementById("profileEmail").textContent;
+        profileTab.classList.remove("active");
+        editProfileTab.classList.add("active");
+    }
+};
+
+document.getElementById("editProfileForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    if (!currentUserId) {
+        alert("User tidak ditemukan!");
+        return;
+    }
+
+    const newName = document.getElementById("editName").value;
+
+    try {
+        const userRef = ref(database, 'users/' + currentUserId);
+        await update(userRef, {
+            fullname: newName
+        });
+
+        document.getElementById("profileName").textContent = newName;
+        alert("✅ Profil berhasil diperbarui!");
+        toggleEditProfile();
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        alert("❌ Gagal memperbarui profil: " + error.message);
+    }
+});
+
+// ================= AUTH STATUS =================
 onAuthStateChanged(auth, (user) => {
     const authBtn = document.getElementById("headerAuthBtn");
     if (user) {
+        currentUserId = user.uid;
         authBtn.textContent = "PROFILE";
-        // PERBAIKAN: Ubah onclick untuk membuka Profile Tab
         authBtn.onclick = function() {
             document.getElementById("authModal").classList.add("active");
             document.querySelectorAll(".auth-tab").forEach(tab => {
@@ -368,10 +453,12 @@ onAuthStateChanged(auth, (user) => {
             document.getElementById("profileTab").classList.add("active");
         };
     } else {
+        currentUserId = null;
         authBtn.textContent = "SIGNING";
         authBtn.onclick = toggleAuthModal;
     }
 });
+
 // ================= MODAL =================
 window.toggleAuthModal = function () {
     document.getElementById("authModal").classList.toggle("active");
