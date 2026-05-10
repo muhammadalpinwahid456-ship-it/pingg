@@ -132,6 +132,7 @@
             onValue,
             push,
             get,
+            set,
             query,
             orderByChild
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -177,6 +178,17 @@
                     const userData = snapshot.val();
                     currentUserName = userData.fullname;
                     document.getElementById('currentUserName').textContent = currentUserName;
+                } else {
+                    // Jika data tidak ada, buat default
+                    currentUserName = currentUser.displayName || currentUser.email.split('@')[0];
+                    document.getElementById('currentUserName').textContent = currentUserName;
+                    
+                    // Simpan data default ke database
+                    set(userRef, {
+                        fullname: currentUserName,
+                        email: currentUser.email,
+                        createdAt: new Date().toISOString()
+                    });
                 }
             });
         }

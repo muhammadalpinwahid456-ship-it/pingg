@@ -243,7 +243,8 @@ import {
 import {
     getDatabase,
     ref,
-    set
+    set,
+    get
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // CONFIG FIREBASE
@@ -323,8 +324,21 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 window.signUpWithGoogle = async function () {
     try {
         const result = await signInWithPopup(auth, provider);
-        document.getElementById("profileName").textContent = result.user.displayName;
-        document.getElementById("profileEmail").textContent = result.user.email;
+        const user = result.user;
+
+        // Simpan data user ke database jika belum ada
+        const userRef = ref(database, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+        if (!snapshot.exists()) {
+            await set(userRef, {
+                fullname: user.displayName || user.email.split('@')[0],
+                email: user.email,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
+        document.getElementById("profileEmail").textContent = user.email;
         document.getElementById("profileDate").textContent = new Date().toLocaleDateString();
         alert("Login Google berhasil!");
         switchTab("profile");
