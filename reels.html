@@ -182,16 +182,29 @@
         let currentUserData = null;
         let reelsUnsubscribe = null;
         let commentsUnsubscribe = null;
+        let loadingStartTime = null;
+        let loadTimeout = null;
 
         // ===== AUTH CHECK =====
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
+                console.log('✅ User authenticated:', user.uid);
                 document.getElementById('authCheck').style.display = 'none';
                 document.getElementById('loadingSpinner').style.display = 'flex';
+                loadingStartTime = Date.now();
+                
+                // Set timeout untuk loading spinner (10 detik max)
+                loadTimeout = setTimeout(() => {
+                    console.warn('⚠️ Loading timeout triggered');
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('reelsMain').style.display = 'flex';
+                }, 10000);
+
                 loadCurrentUser();
                 loadAllReels();
             } else {
+                console.log('❌ User not authenticated');
                 document.getElementById('authCheck').style.display = 'flex';
                 document.getElementById('reelsContainer').style.display = 'none';
                 if (reelsUnsubscribe) reelsUnsubscribe();
@@ -202,9 +215,10 @@
         // Load current user data
         function loadCurrentUser() {
             const userRef = ref(database, 'users/' + currentUser.uid);
-            onValue(userRef, (snapshot) => {
+            get(userRef).then((snapshot) => {
                 if (snapshot.exists()) {
                     currentUserData = snapshot.val();
+                    console.log('✅ User data loaded:', currentUserData.fullname);
                 } else {
                     currentUserData = {
                         fullname: currentUser.displayName || currentUser.email.split('@')[0],
@@ -218,11 +232,12 @@
                         createdAt: new Date().toISOString()
                     });
                 }
-            });
+            }).catch(err => console.error('❌ Error loading current user:', err));
         }
 
-        // Load semua reels dengan preload faster
+        // Load semua reels dengan error handling
         function loadAllReels() {
+            console.log('📡 Starting to load reels...');
             const reelsRef = ref(database, 'reels');
             
             if (reelsUnsubscribe) {
@@ -230,35 +245,53 @@
             }
 
             reelsUnsubscribe = onValue(reelsRef, (snapshot) => {
+                console.log('📦 Reels snapshot received');
                 allReels = [];
+                
                 if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        const reelId = childSnapshot.key;
-                        const reelData = childSnapshot.val();
-                        if (reelData.mediaUrl && reelData.mediaType) {
+                    const reelsData = snapshot.val();
+                    console.log('📊 Total reels in database:', Object.keys(reelsData).length);
+                    
+                    for (const reelId in reelsData) {
+                        const reelData = reelsData[reelId];
+                        if (reelData && reelData.mediaUrl && reelData.mediaType) {
                             allReels.push({
                                 id: reelId,
                                 ...reelData
                             });
                         }
-                    });
+                    }
+                    
                     allReels.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    console.log('✅ Total reels loaded:', allReels.length);
+                    console.log('✅ Valid reels loaded:', allReels.length);
+                } else {
+                    console.log('ℹ️ No reels found in database');
                 }
                 
-                // PERBAIKAN: Hapus loading spinner & tampilkan reels
+                // Clear timeout & hide loading
+                if (loadTimeout) clearTimeout(loadTimeout);
+                
+                const loadingTime = Date.now() - loadingStartTime;
+                console.log(`⏱️ Loading completed in ${loadingTime}ms`);
+                
                 document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('reelsContainer').style.display = 'block';
                 document.getElementById('reelsMain').style.display = 'flex';
                 
                 displayReels();
-                playCurrentVideo(); // Auto-play video pertama
+                if (allReels.length > 0) {
+                    playCurrentVideo();
+                }
             }, (error) => {
                 console.error('❌ Error loading reels:', error);
+                if (loadTimeout) clearTimeout(loadTimeout);
                 document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('reelsMain').style.display = 'flex';
+                alert('❌ Error loading reels: ' + error.message);
             });
         }
 
-        // PERBAIKAN: Display reels dengan id unik
+        // Display reels dengan id unik
         function displayReels() {
             const carousel = document.getElementById('reelsCarousel');
             carousel.innerHTML = '';
@@ -268,15 +301,16 @@
                 return;
             }
 
+            console.log(`🎬 Displaying ${allReels.length} reels`);
+
             allReels.forEach((reel, index) => {
                 const reelElement = document.createElement('div');
                 reelElement.className = `reel-card ${index === currentReelIndex ? 'active' : ''}`;
                 
-                // PERBAIKAN: ID unik untuk setiap video
                 const videoId = `video-${reel.id}`;
                 const mediaHtml = reel.mediaType === 'video' 
-                    ? `<video id="${videoId}" src="${reel.mediaUrl}" preload="auto" playsinline style="width: 100%; height: 100%; object-fit: contain;" onerror="handleVideoError(this)"></video>`
-                    : `<img src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: contain;" onerror="handleImageError(this)">`
+                    ? `<video id="${videoId}" src="${reel.mediaUrl}" preload="metadata" playsinline style="width: 100%; height: 100%; object-fit: contain;" onerror="handleVideoError(this)"></video>`
+                    : `<img id="${videoId}" src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: contain;" onerror="handleImageError(this)">`
 
                 reelElement.innerHTML = `
                     <div class="reel-media">
@@ -296,7 +330,7 @@
             updateUI();
         }
 
-        // PERBAIKAN: Play current video + pause yang lain
+        // Play current video + pause yang lain
         function playCurrentVideo() {
             if (allReels.length === 0) return;
 
@@ -309,7 +343,6 @@
                 video.volume = 1;
             });
 
-            // Play video yang aktif
             const videoId = `video-${currentReel.id}`;
             const videoElement = document.getElementById(videoId);
             
@@ -317,7 +350,7 @@
                 setTimeout(() => {
                     videoElement.muted = false;
                     videoElement.volume = 1;
-                    videoElement.play().catch(err => console.error('Play error:', err));
+                    videoElement.play().catch(err => console.warn('Play error:', err));
                 }, 100);
             }
 
@@ -385,7 +418,6 @@
                     commentsList.appendChild(commentElement);
                 });
 
-                // Auto scroll ke bawah
                 commentsList.scrollTop = commentsList.scrollHeight;
             });
         }
@@ -414,7 +446,7 @@
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
         };
 
-        // Send comment - PERBAIKAN PERMISSION DENIED
+        // Send comment
         window.sendComment = function(event) {
             if (event) event.stopPropagation();
             
@@ -437,13 +469,12 @@
                 return;
             }
 
-            // PERBAIKAN: Pastikan userId ada dan sesuai auth
             const newCommentRef = push(ref(database, `reels/${currentReel.id}/comments`));
             const commentData = {
                 userName: currentUserData.fullname || 'Unknown',
                 userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/32',
                 text: text,
-                userId: currentUser.uid,  // ← PENTING: userId harus ada!
+                userId: currentUser.uid,
                 timestamp: Date.now()
             };
 
@@ -467,11 +498,10 @@
             }
         };
 
-        // PERBAIKAN: Next reel dengan pause video
+        // Next reel
         window.nextReel = function(event) {
             if (event) event.stopPropagation();
             
-            // Pause semua video
             document.querySelectorAll('video').forEach(video => {
                 video.pause();
             });
@@ -483,11 +513,10 @@
             }
         };
 
-        // PERBAIKAN: Prev reel dengan pause video
+        // Prev reel
         window.previousReel = function(event) {
             if (event) event.stopPropagation();
             
-            // Pause semua video
             document.querySelectorAll('video').forEach(video => {
                 video.pause();
             });
@@ -654,6 +683,7 @@
         // Logout
         window.logoutReels = function() {
             if (confirm('Apakah Anda yakin ingin logout?')) {
+                if (loadTimeout) clearTimeout(loadTimeout);
                 if (reelsUnsubscribe) reelsUnsubscribe();
                 if (commentsUnsubscribe) commentsUnsubscribe();
                 signOut(auth).then(() => {
