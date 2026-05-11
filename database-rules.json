@@ -1,16 +1,45 @@
 {
   "rules": {
     "users": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "fullname": { ".read": true },
+        "photoURL": { ".read": true },
+        "email": { ".read": "$uid === auth.uid" },
+        "description": { ".read": true }
+      }
+    },
+    "chats": {
+      "$chatId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "messages": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
     },
     "reels": {
       ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "chats": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "$reelId": {
+        "userId": { ".read": true },
+        "userName": { ".read": true },
+        "userPhoto": { ".read": true },
+        "caption": { ".read": true },
+        "mediaUrl": { ".read": true },
+        "mediaType": { ".read": true },
+        "timestamp": { ".read": true },
+        "likes": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "comments": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
     }
   }
 }

@@ -328,7 +328,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     const password = document.getElementById("registerPassword").value;
     const confirmPassword = document.getElementById("registerConfirmPassword").value;
 
-    // Validasi
+    // Validasi input
     if (!name || name.length < 3) {
         alert("⚠️ Nama minimal 3 karakter!");
         return;
@@ -344,33 +344,42 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
         return;
     }
 
+    const submitBtn = document.querySelector("#registerForm button");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sedang mendaftar...";
+
     try {
-        console.log('📝 Registering user with email:', email);
+        console.log('📝 Registering user:', email);
+        
+        // Step 1: Create Firebase Auth user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        currentUserId = user.uid;
+        
+        console.log('✅ Auth user created:', user.uid);
 
-        console.log('✅ User created:', user.uid);
+        // Step 2: Wait a moment for auth to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Simpan data user ke database
+        // Step 3: Save user data to database
         const userData = {
             fullname: name,
             email: email,
-            createdAt: new Date().toISOString(),
             photoURL: 'https://via.placeholder.com/40',
-            description: ''
+            description: '',
+            createdAt: new Date().toISOString()
         };
 
-        await set(ref(database, 'users/' + user.uid), userData);
+        const userRef = ref(database, 'users/' + user.uid);
+        await set(userRef, userData);
+        
         console.log('✅ User data saved to database');
 
         alert("✅ Akun berhasil dibuat! Silakan login.");
 
-        document.getElementById("profileName").textContent = name;
-        document.getElementById("profileEmail").textContent = email;
-        document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
-
+        // Clear form
         document.getElementById("registerForm").reset();
+        
+        // Switch to login tab
         switchTab("login");
 
     } catch (error) {
@@ -379,12 +388,17 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
         if (error.code === 'auth/email-already-in-use') {
             alert('❌ Email sudah terdaftar');
         } else if (error.code === 'auth/weak-password') {
-            alert('❌ Password terlalu lemah');
+            alert('❌ Password terlalu lemah. Gunakan minimal 6 karakter');
         } else if (error.code === 'auth/invalid-email') {
             alert('❌ Format email tidak valid');
+        } else if (error.code === 'PERMISSION_DENIED') {
+            alert('❌ Permission Denied: Database rules perlu diupdate');
         } else {
             alert('❌ Error: ' + error.message);
         }
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Daftar';
     }
 });
 
