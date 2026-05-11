@@ -35,10 +35,19 @@
             },
             "timestamp": {
               ".validate": "newData.isNumber() && newData.val() <= now"
+              
             }
           }
         }
-      }
+      },
+      "users": {
+  "$uid": {
+    ".write": "$uid === auth.uid",
+    "photoURL": { ".validate": "newData.isString()" },
+    "fullname": { ".validate": "newData.isString()" },
+    "email": { ".validate": "newData.isString()" }
+  }
+}
     }
   }
 }
