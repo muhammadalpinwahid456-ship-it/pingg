@@ -503,3 +503,18 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* MEDIA ERROR */
+.media-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #ff6b6b;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+    z-index: 10;
+}

@@ -208,8 +208,8 @@
                 galleryItem.className = 'gallery-item';
                 
                 const mediaHtml = reel.mediaType === 'video'
-                    ? `<video src="${reel.mediaUrl}" controls style="width: 100%; height: 100%; object-fit: cover;"></video>`
-                    : `<img src="${reel.mediaUrl}" alt="reel">`;
+                    ? `<video src="${reel.mediaUrl}" controls preload="metadata" style="width: 100%; height: 100%; object-fit: cover;" onerror="handleVideoError(this)"></video>`
+                    : `<img src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: cover;" onerror="handleImageError(this)">`;
 
                 const likeCount = Object.keys(reel.likes || {}).length;
 
@@ -323,6 +323,26 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Handle video error
+        window.handleVideoError = function(videoElement) {
+            console.error('Video failed to load:', videoElement.src);
+            videoElement.style.display = 'none';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'media-error';
+            errorDiv.innerHTML = '❌ Video gagal dimuat';
+            videoElement.parentNode.appendChild(errorDiv);
+        };
+
+        // Handle image error
+        window.handleImageError = function(imgElement) {
+            console.error('Image failed to load:', imgElement.src);
+            imgElement.style.display = 'none';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'media-error';
+            errorDiv.innerHTML = '❌ Gambar gagal dimuat';
+            imgElement.parentNode.appendChild(errorDiv);
+        };
     </script>
 </body>
 </html>

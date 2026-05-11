@@ -13,6 +13,59 @@
         },
         "createdAt": {
           ".validate": "newData.isString()"
+        },
+        "photoURL": {
+          ".validate": "newData.isString()"
+        },
+        "description": {
+          ".validate": "newData.isString() && newData.val().length <= 150"
+        }
+      }
+    },
+    "reels": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$reelId": {
+        ".validate": "newData.hasChildren(['userId', 'userName', 'caption', 'mediaUrl', 'mediaType', 'timestamp']) && newData.child('userId').val() === auth.uid",
+        "userId": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "userName": {
+          ".validate": "newData.isString()"
+        },
+        "caption": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "mediaUrl": {
+          ".validate": "newData.isString()"
+        },
+        "mediaType": {
+          ".validate": "newData.isString() && (newData.val() === 'image' || newData.val() === 'video')"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber()"
+        },
+        "likes": {
+          "$userId": {
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "comments": {
+          "$commentId": {
+            ".validate": "newData.hasChildren(['userName', 'userPhoto', 'text', 'timestamp'])",
+            "userName": {
+              ".validate": "newData.isString()"
+            },
+            "userPhoto": {
+              ".validate": "newData.isString()"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+            },
+            "timestamp": {
+              ".validate": "newData.isNumber()"
+            }
+          }
         }
       }
     },
@@ -35,19 +88,10 @@
             },
             "timestamp": {
               ".validate": "newData.isNumber() && newData.val() <= now"
-              
             }
           }
         }
-      },
-      "users": {
-  "$uid": {
-    ".write": "$uid === auth.uid",
-    "photoURL": { ".validate": "newData.isString()" },
-    "fullname": { ".validate": "newData.isString()" },
-    "email": { ".validate": "newData.isString()" }
-  }
-}
+      }
     }
   }
 }
