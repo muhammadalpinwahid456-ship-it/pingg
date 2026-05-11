@@ -186,6 +186,20 @@
             onValue(userRef, (snapshot) => {
                 if (snapshot.exists()) {
                     currentUserData = snapshot.val();
+                } else {
+                    // PERBAIKAN: Inisialisasi data default jika belum ada
+                    currentUserData = {
+                        fullname: currentUser.displayName || currentUser.email.split('@')[0],
+                        photoURL: 'https://via.placeholder.com/40',
+                        email: currentUser.email
+                    };
+                    // Simpan data default ke database
+                    set(userRef, {
+                        fullname: currentUserData.fullname,
+                        photoURL: currentUserData.photoURL,
+                        email: currentUser.email,
+                        createdAt: new Date().toISOString()
+                    });
                 }
             });
         }
@@ -406,6 +420,12 @@
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // PERBAIKAN: Validasi currentUserData
+            if (!currentUserData) {
+                alert('❌ Data profil belum siap. Silakan tunggu sebentar dan coba lagi.');
+                return;
+            }
+
             const caption = document.getElementById('reelCaption').value.trim();
             const fileInput = document.getElementById('reelFile');
             const file = fileInput.files[0];
@@ -435,7 +455,7 @@
                 const newReelRef = push(ref(database, 'reels'));
                 await set(newReelRef, {
                     userId: currentUser.uid,
-                    userName: currentUserData.fullname,
+                    userName: currentUserData.fullname || 'Unknown User',
                     userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/40',
                     caption: caption,
                     mediaUrl: downloadURL,

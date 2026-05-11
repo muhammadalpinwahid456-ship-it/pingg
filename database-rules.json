@@ -1,10 +1,11 @@
 {
   "rules": {
     "users": {
+      ".read": "auth != null",
       "$uid": {
         ".read": "auth != null",
         ".write": "$uid === auth.uid",
-        ".validate": "newData.hasChildren(['fullname', 'email', 'createdAt'])",
+        ".validate": "newData.hasChildren(['fullname', 'email', 'createdAt']) || (data.exists() && data.hasChildren(['fullname', 'email', 'createdAt']))",
         "fullname": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
         },
@@ -70,6 +71,8 @@
       }
     },
     "chats": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$chatId": {
         ".read": "auth != null",
         ".write": "auth != null",
