@@ -85,7 +85,7 @@
             <button class="modal-close" onclick="closeUploadModal()">✕</button>
             <h2>Upload Reels</h2>
             
-            <form id="uploadForm">
+            <form id="uploadForm" onsubmit="handleUploadSubmit(event)">
                 <div class="form-group">
                     <label for="reelCaption">Caption</label>
                     <textarea 
@@ -115,12 +115,22 @@
                     <div class="preview-area" id="previewArea"></div>
                 </div>
 
-                <button type="submit" class="btn-upload-submit">Upload</button>
+                <!-- Progress Bar -->
+                <div id="uploadProgress" style="display: none; margin-bottom: 15px;">
+                    <div style="font-size: 0.85rem; color: #8b949e; margin-bottom: 8px;">
+                        <span id="progressText">Uploading...</span> <span id="progressPercent">0%</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: #2d333b; border-radius: 3px; overflow: hidden;">
+                        <div id="progressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-upload-submit" id="submitBtn">Upload</button>
             </form>
         </div>
     </div>
 
-    <!-- FIREBASE SCRIPTS -->
+    <!-- FIREBASE & CLOUDINARY SCRIPTS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import {
@@ -138,13 +148,13 @@
             update,
             remove
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-        import {
-            getStorage,
-            ref as storageRef,
-            uploadBytes,
-            getDownloadURL
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+        // ===== CLOUDINARY CONFIG (GANTI DENGAN DATA ANDA) =====
+        const CLOUDINARY_CLOUD_NAME = "djc9oemca"; // ✅ Dari gambar Anda
+        const CLOUDINARY_UPLOAD_PRESET = "reels_upload"; // ✅ Dari upload preset yang dibuat
+        const CLOUDINARY_API_KEY = "384246542235939"; // ✅ Dari gambar Anda
+
+        // ===== FIREBASE CONFIG =====
         const firebaseConfig = {
             apiKey: "AIzaSyDzDRaHEASBWO0dDKOIlvlku3lN01b89iw",
             authDomain: "alvin-f573e.firebaseapp.com",
@@ -159,7 +169,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const database = getDatabase(app);
-        const storage = getStorage(app);
 
         let currentUser = null;
         let allReels = [];
@@ -187,13 +196,11 @@
                 if (snapshot.exists()) {
                     currentUserData = snapshot.val();
                 } else {
-                    // PERBAIKAN: Inisialisasi data default jika belum ada
                     currentUserData = {
                         fullname: currentUser.displayName || currentUser.email.split('@')[0],
                         photoURL: 'https://via.placeholder.com/40',
                         email: currentUser.email
                     };
-                    // Simpan data default ke database
                     set(userRef, {
                         fullname: currentUserData.fullname,
                         photoURL: currentUserData.photoURL,
@@ -390,6 +397,7 @@
             document.getElementById('uploadForm').reset();
             document.getElementById('previewArea').innerHTML = '';
             document.getElementById('captionCount').textContent = '0';
+            document.getElementById('uploadProgress').style.display = 'none';
         };
 
         // Preview media
@@ -399,12 +407,20 @@
             previewArea.innerHTML = '';
 
             if (file) {
+                // Validasi ukuran file (max 100MB untuk video, 10MB untuk foto)
+                const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert(`❌ File terlalu besar! Max: ${file.type.startsWith('video/') ? '100MB' : '10MB'}`);
+                    document.getElementById('reelFile').value = '';
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     if (file.type.startsWith('image/')) {
                         previewArea.innerHTML = `<img src="${e.target.result}" alt="preview">`;
                     } else if (file.type.startsWith('video/')) {
-                        previewArea.innerHTML = `<video src="${e.target.result}" controls></video>`;
+                        previewArea.innerHTML = `<video src="${e.target.result}" controls style="max-width: 100%; max-height: 300px;"></video>`;
                     }
                 };
                 reader.readAsDataURL(file);
@@ -416,11 +432,57 @@
             document.getElementById('captionCount').textContent = this.value.length;
         });
 
-        // Upload form submit
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        // ===== UPLOAD KE CLOUDINARY =====
+        async function uploadToCloudinary(file) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
+
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        document.getElementById('progressBar').style.width = percentComplete + '%';
+                        document.getElementById('progressPercent').textContent = percentComplete + '%';
+                        document.getElementById('progressText').textContent = 
+                            file.type.startsWith('video/') ? 'Mengupload video...' : 'Mengupload foto...';
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        console.log('✅ Upload ke Cloudinary berhasil:', response.secure_url);
+                        resolve({
+                            url: response.secure_url,
+                            publicId: response.public_id,
+                            type: file.type.startsWith('video/') ? 'video' : 'image'
+                        });
+                    } else {
+                        reject(new Error('Upload failed: ' + xhr.statusText));
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    console.error('❌ Upload error');
+                    reject(new Error('Upload error'));
+                });
+
+                const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+                console.log('📤 Uploading ke:', uploadUrl);
+                xhr.open('POST', uploadUrl);
+                xhr.send(formData);
+            });
+        }
+
+        // Handle upload submit
+        window.handleUploadSubmit = async function(e) {
             e.preventDefault();
 
-            // PERBAIKAN: Validasi currentUserData
             if (!currentUserData) {
                 alert('❌ Data profil belum siap. Silakan tunggu sebentar dan coba lagi.');
                 return;
@@ -431,54 +493,63 @@
             const file = fileInput.files[0];
 
             if (!file) {
-                alert('Pilih file terlebih dahulu');
+                alert('❌ Pilih file terlebih dahulu');
                 return;
             }
 
             try {
                 // Show loading
-                const submitBtn = document.querySelector('.btn-upload-submit');
+                const submitBtn = document.getElementById('submitBtn');
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Uploading...';
+                submitBtn.textContent = 'Processing...';
+                document.getElementById('uploadProgress').style.display = 'block';
 
-                const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
-                const fileExtension = file.name.split('.').pop();
-                const fileName = `${currentUser.uid}_${Date.now()}.${fileExtension}`;
-                const filePath = `reels/${mediaType}s/${fileName}`;
+                console.log('📤 Mulai upload file:', file.name);
+                
+                // Upload ke Cloudinary
+                const uploadResult = await uploadToCloudinary(file);
+                console.log('✅ Upload berhasil:', uploadResult);
 
-                // Upload ke Firebase Storage
-                const fileStorageRef = storageRef(storage, filePath);
-                await uploadBytes(fileStorageRef, file);
-                const downloadURL = await getDownloadURL(fileStorageRef);
+                // Update progress
+                document.getElementById('progressText').textContent = 'Menyimpan data...';
+                document.getElementById('progressPercent').textContent = '95%';
 
-                // Simpan metadata ke Database
+                // Simpan metadata ke Firebase Database
                 const newReelRef = push(ref(database, 'reels'));
                 await set(newReelRef, {
                     userId: currentUser.uid,
                     userName: currentUserData.fullname || 'Unknown User',
                     userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/40',
                     caption: caption,
-                    mediaUrl: downloadURL,
-                    mediaType: mediaType,
+                    mediaUrl: uploadResult.url,
+                    mediaType: uploadResult.type,
+                    cloudinaryPublicId: uploadResult.publicId,
                     timestamp: Date.now(),
                     likes: {},
                     comments: {}
                 });
 
-                alert('✅ Reels berhasil diupload!');
-                document.getElementById('uploadForm').reset();
-                document.getElementById('previewArea').innerHTML = '';
-                closeUploadModal();
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Upload';
+                console.log('✅ Data tersimpan ke Firebase');
+                document.getElementById('progressPercent').textContent = '100%';
+
+                setTimeout(() => {
+                    alert('✅ Reels berhasil diupload!');
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('previewArea').innerHTML = '';
+                    document.getElementById('uploadProgress').style.display = 'none';
+                    closeUploadModal();
+                }, 500);
+                
             } catch (error) {
-                console.error('Upload error:', error);
+                console.error('❌ Upload error:', error);
                 alert('❌ Error: ' + error.message);
-                const submitBtn = document.querySelector('.btn-upload-submit');
+            } finally {
+                const submitBtn = document.getElementById('submitBtn');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Upload';
+                document.getElementById('uploadProgress').style.display = 'none';
             }
-        });
+        };
 
         // Logout
         window.logoutReels = function() {
