@@ -220,7 +220,7 @@
 
                     <div class="divider">ATAU</div>
 
-                    <button class="btn-google" onclick="signUpWithGoogle()">
+                    <button class="btn-google" id="googleSignUpBtn" onclick="signUpWithGoogle(event)">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -248,7 +248,8 @@ import {
     signOut,
     onAuthStateChanged,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithRedirect,
+    getRedirectResult
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -278,6 +279,44 @@ const database = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
 let currentUserId = null;
+
+// ================= HANDLE GOOGLE REDIRECT RESULT =================
+getRedirectResult(auth)
+    .then((result) => {
+        if (result) {
+            const user = result.user;
+            currentUserId = user.uid;
+
+            // Simpan data user ke database jika belum ada
+            const userRef = ref(database, 'users/' + user.uid);
+            get(userRef).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    set(userRef, {
+                        fullname: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        createdAt: new Date().toISOString()
+                    });
+                    document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
+                } else {
+                    const userData = snapshot.val();
+                    document.getElementById("profileName").textContent = userData.fullname;
+                }
+                
+                document.getElementById("profileEmail").textContent = user.email;
+                document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
+                
+                alert("✅ Login Google berhasil!");
+                toggleAuthModal();
+                switchTab("profile");
+            }).catch(err => {
+                console.error('Error checking user:', err);
+                alert('Error: ' + err.message);
+            });
+        }
+    })
+    .catch((error) => {
+        console.error('❌ Redirect error:', error);
+    });
 
 // ================= REGISTER =================
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
@@ -347,34 +386,31 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }
 });
 
-// ================= LOGIN GOOGLE =================
-window.signUpWithGoogle = async function () {
+// ================= LOGIN GOOGLE (REDIRECT METHOD) =================
+window.signUpWithGoogle = async function (event) {
+    if (event) event.preventDefault();
+    
     try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        currentUserId = user.uid;
-
-        // Simpan data user ke database jika belum ada
-        const userRef = ref(database, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-        if (!snapshot.exists()) {
-            await set(userRef, {
-                fullname: user.displayName || user.email.split('@')[0],
-                email: user.email,
-                createdAt: new Date().toISOString()
-            });
-            document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
-        } else {
-            const userData = snapshot.val();
-            document.getElementById("profileName").textContent = userData.fullname;
-        }
+        console.log('📱 Initiating Google Sign-In with redirect...');
         
-        document.getElementById("profileEmail").textContent = user.email;
-        document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
-        alert("Login Google berhasil!");
-        switchTab("profile");
+        // Configure Google provider
+        provider.setCustomParameters({
+            'prompt': 'select_account'
+        });
+        
+        // Use redirect instead of popup (compatible dengan GitHub Pages)
+        await signInWithRedirect(auth, provider);
+        
     } catch (error) {
-        alert(error.message);
+        console.error('❌ Google Sign-In error:', error);
+        
+        if (error.code === 'auth/popup-blocked') {
+            alert('❌ Popup diblokir. Harap izinkan popup untuk domain ini.');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            alert('⚠️ Login dibatalkan.');
+        } else {
+            alert('❌ Error: ' + error.message);
+        }
     }
 };
 
