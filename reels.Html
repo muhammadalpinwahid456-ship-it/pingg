@@ -107,10 +107,10 @@
                             required
                             onchange="previewMedia()"
                         >
-                        <div class="file-input-label">
+                        <label for="reelFile" class="file-input-label">
                             <span class="icon">📹</span>
                             <span>Klik untuk memilih video atau foto</span>
-                        </div>
+                        </label>
                     </div>
                     <div class="preview-area" id="previewArea"></div>
                 </div>
@@ -180,6 +180,7 @@
             onValue(userRef, (snapshot) => {
                 if (snapshot.exists()) {
                     currentUserData = snapshot.val();
+                    console.log('✅ Current user loaded:', currentUserData.fullname);
                 }
             });
         }
@@ -200,6 +201,7 @@
                     });
                     // Sort by timestamp (newest first)
                     allReels.sort((a, b) => b.timestamp - a.timestamp);
+                    console.log('✅ Reels loaded:', allReels.length);
                 }
                 displayReels();
             });
@@ -211,7 +213,7 @@
             carousel.innerHTML = '';
 
             if (allReels.length === 0) {
-                carousel.innerHTML = '<div class="no-reels">Belum ada reels. Upload yang pertama!</div>';
+                carousel.innerHTML = '<div class="no-reels">Belum ada reels. <a href="#" onclick="openUploadModal()">Upload yang pertama!</a></div>';
                 return;
             }
 
@@ -312,9 +314,9 @@
             const isLiked = likes[currentUser.uid] === true;
 
             if (isLiked) {
-                remove(reelRef);
+                remove(reelRef).catch(err => console.error('Error unlike:', err));
             } else {
-                set(reelRef, true);
+                set(reelRef, true).catch(err => console.error('Error like:', err));
             }
         };
 
@@ -332,7 +334,7 @@
             const commentInput = document.getElementById('commentInput');
             const text = commentInput.value.trim();
 
-            if (!text) return;
+            if (!text || !currentUserData) return;
 
             const newCommentRef = push(ref(database, `reels/${currentReel.id}/comments`));
             set(newCommentRef, {
@@ -342,7 +344,8 @@
                 timestamp: Date.now()
             }).then(() => {
                 commentInput.value = '';
-            }).catch(err => alert('Error: ' + err.message));
+                console.log('✅ Comment sent');
+            }).catch(err => alert('❌ Error: ' + err.message));
         };
 
         // Handle comment key press
@@ -378,6 +381,7 @@
             document.getElementById('uploadModal').style.display = 'none';
             document.getElementById('uploadForm').reset();
             document.getElementById('previewArea').innerHTML = '';
+            document.getElementById('captionCount').textContent = '0';
         };
 
         // Preview media
@@ -387,6 +391,12 @@
             previewArea.innerHTML = '';
 
             if (file) {
+                // Validate file size (max 50MB)
+                if (file.size > 50 * 1024 * 1024) {
+                    alert('❌ File terlalu besar (max 50MB)');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     if (file.type.startsWith('image/')) {
@@ -417,6 +427,16 @@
                 return;
             }
 
+            if (!currentUserData) {
+                alert('❌ User data tidak ditemukan');
+                return;
+            }
+
+            // Disable button during upload
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Uploading...';
+
             // Read file as base64
             const reader = new FileReader();
             reader.onload = async (event) => {
@@ -440,8 +460,17 @@
                     alert('✅ Reels berhasil diupload!');
                     closeUploadModal();
                 } catch (error) {
+                    console.error('❌ Error:', error);
                     alert('❌ Error: ' + error.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Upload';
                 }
+            };
+            reader.onerror = () => {
+                alert('❌ Error membaca file');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload';
             };
             reader.readAsDataURL(file);
         });
@@ -451,7 +480,7 @@
             if (confirm('Apakah Anda yakin ingin logout?')) {
                 signOut(auth).then(() => {
                     window.location.href = 'index.html';
-                }).catch(err => alert('Error: ' + err.message));
+                }).catch(err => alert('❌ Error: ' + err.message));
             }
         };
 
