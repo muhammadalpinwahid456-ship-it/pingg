@@ -137,6 +137,8 @@
 
         let currentUser = null;
         let userReels = [];
+        let userProfileUnsubscribe = null;
+        let userReelsUnsubscribe = null;
 
         // ===== AUTH CHECK =====
         onAuthStateChanged(auth, (user) => {
@@ -149,13 +151,18 @@
             } else {
                 document.getElementById('authCheck').style.display = 'flex';
                 document.getElementById('profileContainer').style.display = 'none';
+                if (userProfileUnsubscribe) userProfileUnsubscribe();
+                if (userReelsUnsubscribe) userReelsUnsubscribe();
             }
         });
 
-        // Load user profile
+        // Load user profile (DIPERBAIKI: Realtime listener)
         function loadUserProfile() {
             const userRef = ref(database, 'users/' + currentUser.uid);
-            onValue(userRef, (snapshot) => {
+            
+            if (userProfileUnsubscribe) userProfileUnsubscribe();
+            
+            userProfileUnsubscribe = onValue(userRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
                     document.getElementById('profileName').textContent = userData.fullname || 'User';
@@ -168,32 +175,45 @@
                     document.getElementById('editName').value = userData.fullname || '';
                     document.getElementById('editDesc').value = userData.description || '';
                     document.getElementById('descCount').textContent = (userData.description || '').length;
+                    
+                    console.log('✅ Profile loaded:', userData.fullname);
                 }
+            }, (error) => {
+                console.error('❌ Error loading profile:', error);
             });
         }
 
-        // Load user reels
+        // Load user reels (DIPERBAIKI: Realtime listener dengan filter)
         function loadUserReels() {
             const reelsRef = ref(database, 'reels');
-            onValue(reelsRef, (snapshot) => {
+            
+            if (userReelsUnsubscribe) userReelsUnsubscribe();
+            
+            userReelsUnsubscribe = onValue(reelsRef, (snapshot) => {
                 userReels = [];
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
                         const reelData = childSnapshot.val();
-                        if (reelData.userId === currentUser.uid) {
+                        // Filter hanya reels milik user ini
+                        if (reelData.userId === currentUser.uid && reelData.mediaUrl) {
                             userReels.push({
                                 id: childSnapshot.key,
                                 ...reelData
                             });
                         }
                     });
+                    // Sort by timestamp (terbaru dulu)
+                    userReels.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    console.log('✅ User reels loaded:', userReels.length);
                 }
                 displayUserReels();
                 updateStats();
+            }, (error) => {
+                console.error('❌ Error loading reels:', error);
             });
         }
 
-        // Display user reels
+        // Display user reels (DIPERBAIKI: Ukuran dan styling)
         function displayUserReels() {
             const gallery = document.getElementById('galleryGrid');
             gallery.innerHTML = '';
@@ -207,11 +227,13 @@
                 const galleryItem = document.createElement('div');
                 galleryItem.className = 'gallery-item';
                 
+                // PERBAIKAN: Media dengan ukuran proporsional
                 const mediaHtml = reel.mediaType === 'video'
                     ? `<video src="${reel.mediaUrl}" controls preload="metadata" style="width: 100%; height: 100%; object-fit: cover;" onerror="handleVideoError(this)"></video>`
                     : `<img src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: cover;" onerror="handleImageError(this)">`;
 
                 const likeCount = Object.keys(reel.likes || {}).length;
+                const commentCount = Object.keys(reel.comments || {}).length;
 
                 galleryItem.innerHTML = `
                     <div class="gallery-media">
@@ -219,7 +241,7 @@
                         <div class="gallery-overlay">
                             <div class="gallery-stats">
                                 <span>❤️ ${likeCount}</span>
-                                <span>💬 ${Object.keys(reel.comments || {}).length}</span>
+                                <span>💬 ${commentCount}</span>
                             </div>
                         </div>
                     </div>
@@ -239,6 +261,8 @@
 
             document.getElementById('totalLikes').textContent = totalLikes;
             document.getElementById('totalReels').textContent = userReels.length;
+            
+            console.log('📊 Stats updated - Reels:', userReels.length, 'Likes:', totalLikes);
         }
 
         // Open edit photo
@@ -250,6 +274,11 @@
         document.getElementById('photoUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ File terlalu besar! Max 5MB');
+                    return;
+                }
+                
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     try {
@@ -258,8 +287,10 @@
                         await update(userRef, { photoURL: photoURL });
                         document.getElementById('profilePic').src = photoURL;
                         alert('✅ Foto profil berhasil diperbarui!');
+                        console.log('✅ Photo updated');
                     } catch (error) {
                         alert('❌ Error: ' + error.message);
+                        console.error('Photo upload error:', error);
                     }
                 };
                 reader.readAsDataURL(file);
@@ -289,7 +320,7 @@
             const description = document.getElementById('editDesc').value.trim();
 
             if (!name) {
-                alert('Nama tidak boleh kosong');
+                alert('❌ Nama tidak boleh kosong');
                 return;
             }
 
@@ -302,18 +333,24 @@
 
                 alert('✅ Profile berhasil diperbarui!');
                 closeEditModal();
-                loadUserProfile();
+                console.log('✅ Profile updated');
             } catch (error) {
                 alert('❌ Error: ' + error.message);
+                console.error('Profile update error:', error);
             }
         });
 
         // Logout
         window.logoutProfile = function() {
             if (confirm('Apakah Anda yakin ingin logout?')) {
+                if (userProfileUnsubscribe) userProfileUnsubscribe();
+                if (userReelsUnsubscribe) userReelsUnsubscribe();
                 signOut(auth).then(() => {
                     window.location.href = 'index.html';
-                }).catch(err => alert('❌ Error: ' + err.message));
+                }).catch(err => {
+                    alert('❌ Error: ' + err.message);
+                    console.error('Logout error:', err);
+                });
             }
         };
 
