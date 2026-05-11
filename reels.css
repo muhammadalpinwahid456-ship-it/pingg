@@ -82,6 +82,41 @@ body {
     overflow: hidden;
 }
 
+/* LOADING SPINNER (BARU) */
+.loading-spinner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0d1117;
+    z-index: 100;
+    gap: 20px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(59, 130, 246, 0.2);
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+    color: #8b949e;
+    font-size: 1rem;
+}
+
 .reels-carousel {
     display: flex;
     height: 100%;
@@ -168,6 +203,7 @@ body {
     justify-content: space-between;
     padding: 0 20px;
     pointer-events: none;
+    z-index: 5;
 }
 
 .control-btn {
@@ -243,7 +279,7 @@ body {
     margin-top: 2px;
 }
 
-/* COMMENTS PANEL */
+/* COMMENTS PANEL (PERBAIKAN) */
 .comments-panel {
     position: absolute;
     right: 0;
@@ -293,6 +329,18 @@ body {
 .comment-item {
     padding: 12px 16px;
     border-bottom: 1px solid #2d333b;
+    animation: slideInComment 0.3s ease;
+}
+
+@keyframes slideInComment {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .comment-user {
@@ -325,6 +373,7 @@ body {
     text-align: center;
     color: #6e7681;
     padding: 20px;
+    font-size: 0.95rem;
 }
 
 .comment-input-area {
@@ -343,6 +392,7 @@ body {
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 0.9rem;
+    transition: all 0.2s ease;
 }
 
 .comment-input-area input::placeholder {
@@ -365,10 +415,17 @@ body {
     font-weight: 600;
     font-size: 0.9rem;
     transition: all 0.2s ease;
+    min-width: 50px;
 }
 
 .comment-input-area button:hover {
     transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.comment-input-area button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* UPLOAD MODAL */
@@ -529,6 +586,11 @@ body {
 .btn-upload-submit:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-upload-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* AUTH CHECK */
