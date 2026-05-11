@@ -27,8 +27,6 @@
       ".read": "auth != null",
       ".write": "auth != null",
       "$reelId": {
-        ".read": "auth != null",
-        ".write": "auth != null",
         ".validate": "newData.hasChildren(['userId', 'userName', 'caption', 'mediaUrl', 'mediaType', 'timestamp']) && newData.child('userId').val() === auth.uid",
         "userId": {
           ".validate": "newData.isString() && newData.val() === auth.uid"
@@ -45,24 +43,17 @@
         "mediaType": {
           ".validate": "newData.isString() && (newData.val() === 'image' || newData.val() === 'video')"
         },
-        "userPhoto": {
-          ".validate": "newData.isString()"
-        },
         "timestamp": {
           ".validate": "newData.isNumber()"
         },
         "likes": {
-          ".read": "auth != null",
-          ".write": "auth != null",
           "$userId": {
-            ".write": "auth.uid === $userId",
             ".validate": "newData.isBoolean()"
           }
         },
         "comments": {
-          ".read": "auth != null",
-          ".write": "auth != null",
           "$commentId": {
+            ".read": "auth != null",
             ".write": "auth != null",
             ".validate": "newData.hasChildren(['userName', 'userPhoto', 'text', 'timestamp', 'userId']) && newData.child('userId').val() === auth.uid",
             "userName": {

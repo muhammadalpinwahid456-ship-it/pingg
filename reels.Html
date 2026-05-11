@@ -31,15 +31,21 @@
             </div>
         </header>
 
+        <!-- LOADING SPINNER -->
+        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading reels...</p>
+        </div>
+
         <!-- MAIN REELS AREA -->
-        <div class="reels-main">
+        <div class="reels-main" id="reelsMain" style="display: none;">
             <div class="reels-viewer">
                 <div id="reelsCarousel" class="reels-carousel">
                     <!-- Reels akan ditampilkan di sini -->
                 </div>
                 <div class="reels-controls">
-                    <button class="control-btn prev-btn" onclick="previousReel()">❮</button>
-                    <button class="control-btn next-btn" onclick="nextReel()">❯</button>
+                    <button class="control-btn prev-btn" onclick="previousReel(event)">❮</button>
+                    <button class="control-btn next-btn" onclick="nextReel(event)">❯</button>
                 </div>
             </div>
 
@@ -73,8 +79,9 @@
                     id="commentInput" 
                     placeholder="Tambahkan komentar..." 
                     onkeypress="handleCommentKeyPress(event)"
+                    onclick="event.stopPropagation()"
                 >
-                <button onclick="sendComment()">Kirim</button>
+                <button onclick="sendComment(event)">Kirim</button>
             </div>
         </div>
     </div>
@@ -152,7 +159,6 @@
         // ===== CLOUDINARY CONFIG =====
         const CLOUDINARY_CLOUD_NAME = "djc9oemca";
         const CLOUDINARY_UPLOAD_PRESET = "reels_upload";
-        const CLOUDINARY_API_KEY = "384246542235939";
 
         // ===== FIREBASE CONFIG =====
         const firebaseConfig = {
@@ -182,7 +188,7 @@
             if (user) {
                 currentUser = user;
                 document.getElementById('authCheck').style.display = 'none';
-                document.getElementById('reelsContainer').style.display = 'flex';
+                document.getElementById('loadingSpinner').style.display = 'flex';
                 loadCurrentUser();
                 loadAllReels();
             } else {
@@ -215,7 +221,7 @@
             });
         }
 
-        // Load semua reels
+        // Load semua reels dengan preload faster
         function loadAllReels() {
             const reelsRef = ref(database, 'reels');
             
@@ -239,13 +245,20 @@
                     allReels.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                     console.log('✅ Total reels loaded:', allReels.length);
                 }
+                
+                // PERBAIKAN: Hapus loading spinner & tampilkan reels
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('reelsMain').style.display = 'flex';
+                
                 displayReels();
+                playCurrentVideo(); // Auto-play video pertama
             }, (error) => {
                 console.error('❌ Error loading reels:', error);
+                document.getElementById('loadingSpinner').style.display = 'none';
             });
         }
 
-        // Display reels
+        // PERBAIKAN: Display reels dengan id unik
         function displayReels() {
             const carousel = document.getElementById('reelsCarousel');
             carousel.innerHTML = '';
@@ -259,9 +272,11 @@
                 const reelElement = document.createElement('div');
                 reelElement.className = `reel-card ${index === currentReelIndex ? 'active' : ''}`;
                 
+                // PERBAIKAN: ID unik untuk setiap video
+                const videoId = `video-${reel.id}`;
                 const mediaHtml = reel.mediaType === 'video' 
-                    ? `<video id="video-${index}" src="${reel.mediaUrl}" preload="auto" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" onerror="handleVideoError(this)"></video>`
-                    : `<img src="${reel.mediaUrl}" alt="reel" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" onerror="handleImageError(this)">`
+                    ? `<video id="${videoId}" src="${reel.mediaUrl}" preload="auto" playsinline style="width: 100%; height: 100%; object-fit: contain;" onerror="handleVideoError(this)"></video>`
+                    : `<img src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: contain;" onerror="handleImageError(this)">`
 
                 reelElement.innerHTML = `
                     <div class="reel-media">
@@ -278,36 +293,38 @@
                 carousel.appendChild(reelElement);
             });
 
-            // PERBAIKAN: Pause semua video dulu, baru play yang aktif
-            setTimeout(() => {
-                pauseAllVideos();
-                playCurrentVideo();
-                updateUI();
-            }, 100);
+            updateUI();
         }
 
-        // Pause semua video
-        function pauseAllVideos() {
+        // PERBAIKAN: Play current video + pause yang lain
+        function playCurrentVideo() {
+            if (allReels.length === 0) return;
+
+            const currentReel = allReels[currentReelIndex];
+            
+            // Pause semua video
             document.querySelectorAll('video').forEach(video => {
                 video.pause();
                 video.muted = false;
+                video.volume = 1;
             });
-        }
 
-        // Play video saat ini
-        function playCurrentVideo() {
-            const videoElement = document.getElementById(`video-${currentReelIndex}`);
-            if (videoElement) {
-                videoElement.muted = false;
-                videoElement.volume = 1;
-                videoElement.play().catch(err => {
-                    console.warn('⚠️ Autoplay tidak bisa jalan:', err);
-                    videoElement.play();
-                });
+            // Play video yang aktif
+            const videoId = `video-${currentReel.id}`;
+            const videoElement = document.getElementById(videoId);
+            
+            if (videoElement && videoElement.tagName === 'VIDEO') {
+                setTimeout(() => {
+                    videoElement.muted = false;
+                    videoElement.volume = 1;
+                    videoElement.play().catch(err => console.error('Play error:', err));
+                }, 100);
             }
+
+            loadComments();
         }
 
-        // Update UI
+        // Update UI untuk like dan comment count
         function updateUI() {
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
@@ -319,8 +336,6 @@
             likeBtn.classList.toggle('liked', isLiked);
             document.getElementById('likeCount').textContent = Object.keys(likes).length;
             document.getElementById('commentCount').textContent = Object.keys(currentReel.comments || {}).length;
-
-            loadComments();
         }
 
         // Load comments dengan real-time listener
@@ -328,7 +343,6 @@
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
 
-            // PERBAIKAN: Cleanup listener lama
             if (commentsUnsubscribe) {
                 commentsUnsubscribe();
             }
@@ -359,16 +373,12 @@
                 commentsArray.forEach(comment => {
                     const commentElement = document.createElement('div');
                     commentElement.className = 'comment-item';
-                    
-                    const timeAgo = getTimeAgo(comment.timestamp);
-                    
                     commentElement.innerHTML = `
                         <div class="comment-user">
                             <img src="${comment.userPhoto || 'https://via.placeholder.com/32'}" alt="user" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                             <div>
                                 <h5>${escapeHtml(comment.userName)}</h5>
                                 <p>${escapeHtml(comment.text)}</p>
-                                <span style="font-size: 0.75rem; color: #6e7681;">${timeAgo}</span>
                             </div>
                         </div>
                     `;
@@ -380,25 +390,9 @@
             });
         }
 
-        // Get time ago
-        function getTimeAgo(timestamp) {
-            const now = Date.now();
-            const diff = now - timestamp;
-            const seconds = Math.floor(diff / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (seconds < 60) return 'baru saja';
-            if (minutes < 60) return `${minutes}m`;
-            if (hours < 24) return `${hours}h`;
-            return `${days}d`;
-        }
-
-        // Toggle like dengan event.stopPropagation
+        // Toggle like
         window.toggleLike = function(event) {
-            event.stopPropagation(); // PERBAIKAN: Hentikan event bubbling
-            
+            event.stopPropagation();
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
 
@@ -413,24 +407,20 @@
             }
         };
 
-        // Toggle comments dengan event.stopPropagation
+        // Toggle comments
         window.toggleComments = function(event) {
-            if (event) event.stopPropagation(); // PERBAIKAN: Hentikan event bubbling
-            
+            event.stopPropagation();
             const panel = document.getElementById('commentsPanel');
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
         };
 
-        // Send comment dengan validasi & error handling
-        window.sendComment = function() {
+        // Send comment - PERBAIKAN PERMISSION DENIED
+        window.sendComment = function(event) {
+            if (event) event.stopPropagation();
+            
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) {
                 alert('❌ Reel tidak ditemukan');
-                return;
-            }
-
-            if (!currentUserData) {
-                alert('❌ Data profil belum siap');
                 return;
             }
 
@@ -442,33 +432,30 @@
                 return;
             }
 
-            // PERBAIKAN: Disable button saat loading
-            const sendBtn = document.querySelector('.comment-input-area button');
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Mengirim...';
+            if (!currentUserData) {
+                alert('❌ Data profil belum siap');
+                return;
+            }
 
+            // PERBAIKAN: Pastikan userId ada dan sesuai auth
             const newCommentRef = push(ref(database, `reels/${currentReel.id}/comments`));
             const commentData = {
-                userName: currentUserData.fullname || 'Anonymous',
+                userName: currentUserData.fullname || 'Unknown',
                 userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/32',
                 text: text,
-                timestamp: Date.now(),
-                userId: currentUser.uid
+                userId: currentUser.uid,  // ← PENTING: userId harus ada!
+                timestamp: Date.now()
             };
 
             set(newCommentRef, commentData)
                 .then(() => {
-                    console.log('✅ Comment added successfully');
+                    console.log('✅ Komentar berhasil ditambahkan');
                     commentInput.value = '';
                     commentInput.focus();
                 })
                 .catch((error) => {
-                    console.error('❌ Error adding comment:', error);
+                    console.error('❌ Error sending comment:', error);
                     alert('❌ Gagal mengirim komentar: ' + error.message);
-                })
-                .finally(() => {
-                    sendBtn.disabled = false;
-                    sendBtn.textContent = 'Kirim';
                 });
         };
 
@@ -476,25 +463,39 @@
         window.handleCommentKeyPress = function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                sendComment();
+                sendComment(event);
             }
         };
 
-        // Next reel dengan pause semua video
-        window.nextReel = function() {
+        // PERBAIKAN: Next reel dengan pause video
+        window.nextReel = function(event) {
+            if (event) event.stopPropagation();
+            
+            // Pause semua video
+            document.querySelectorAll('video').forEach(video => {
+                video.pause();
+            });
+
             if (currentReelIndex < allReels.length - 1) {
-                pauseAllVideos(); // PERBAIKAN: Pause sebelum ganti
                 currentReelIndex++;
                 displayReels();
+                playCurrentVideo();
             }
         };
 
-        // Previous reel dengan pause semua video
-        window.previousReel = function() {
+        // PERBAIKAN: Prev reel dengan pause video
+        window.previousReel = function(event) {
+            if (event) event.stopPropagation();
+            
+            // Pause semua video
+            document.querySelectorAll('video').forEach(video => {
+                video.pause();
+            });
+
             if (currentReelIndex > 0) {
-                pauseAllVideos(); // PERBAIKAN: Pause sebelum ganti
                 currentReelIndex--;
                 displayReels();
+                playCurrentVideo();
             }
         };
 
@@ -558,32 +559,27 @@
                         const percentComplete = Math.round((e.loaded / e.total) * 100);
                         document.getElementById('progressBar').style.width = percentComplete + '%';
                         document.getElementById('progressPercent').textContent = percentComplete + '%';
-                        document.getElementById('progressText').textContent = 
-                            file.type.startsWith('video/') ? 'Mengupload video...' : 'Mengupload foto...';
                     }
                 });
 
                 xhr.addEventListener('load', () => {
                     if (xhr.status === 200) {
                         const response = JSON.parse(xhr.responseText);
-                        console.log('✅ Upload ke Cloudinary berhasil:', response.secure_url);
                         resolve({
                             url: response.secure_url,
                             publicId: response.public_id,
                             type: file.type.startsWith('video/') ? 'video' : 'image'
                         });
                     } else {
-                        reject(new Error('Upload failed: ' + xhr.statusText));
+                        reject(new Error('Upload failed'));
                     }
                 });
 
                 xhr.addEventListener('error', () => {
-                    console.error('❌ Upload error');
                     reject(new Error('Upload error'));
                 });
 
                 const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
-                console.log('📤 Uploading ke:', uploadUrl);
                 xhr.open('POST', uploadUrl);
                 xhr.send(formData);
             });
@@ -594,7 +590,7 @@
             e.preventDefault();
 
             if (!currentUserData) {
-                alert('❌ Data profil belum siap. Silakan tunggu sebentar dan coba lagi.');
+                alert('❌ Data profil belum siap');
                 return;
             }
 
@@ -613,10 +609,7 @@
                 submitBtn.textContent = 'Processing...';
                 document.getElementById('uploadProgress').style.display = 'block';
 
-                console.log('📤 Mulai upload file:', file.name);
-                
                 const uploadResult = await uploadToCloudinary(file);
-                console.log('✅ Upload berhasil:', uploadResult);
 
                 document.getElementById('progressText').textContent = 'Menyimpan data...';
                 document.getElementById('progressPercent').textContent = '95%';
@@ -636,7 +629,6 @@
                 };
 
                 await set(newReelRef, reelData);
-                console.log('✅ Data tersimpan ke Firebase dengan ID:', newReelRef.key);
 
                 document.getElementById('progressPercent').textContent = '100%';
 
@@ -662,7 +654,6 @@
         // Logout
         window.logoutReels = function() {
             if (confirm('Apakah Anda yakin ingin logout?')) {
-                pauseAllVideos();
                 if (reelsUnsubscribe) reelsUnsubscribe();
                 if (commentsUnsubscribe) commentsUnsubscribe();
                 signOut(auth).then(() => {
