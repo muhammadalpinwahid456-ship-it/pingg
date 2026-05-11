@@ -19,15 +19,17 @@
     <!-- CHAT CONTAINER -->
     <div id="chatContainer" class="chat-container" style="display: none;">
         <!-- HEADER -->
-        <header class="chat-header">
-            <div class="header-left">
-                <h1 class="logo">💬 ALVIN Chat</h1>
-            </div>
-            <div class="header-right">
-                <span class="user-name" id="currentUserName">User</span>
-                <button class="btn-logout-chat" onclick="logoutChat()">Logout</button>
-            </div>
-        </header>
+       <header class="chat-header">
+    <div class="header-left">
+        <h1 class="logo">💬 ALVIN Chat</h1>
+    </div>
+    <div class="header-right">
+        <input type="file" id="profileUpload" accept="image/*">
+        <img id="myAvatar" src="https://via.placeholder.com/40" class="user-avatar" title="Klik untuk ganti foto">
+        <span class="user-name" id="currentUserName">User</span>
+        <button class="btn-logout-chat" onclick="logoutChat()">Logout</button>
+    </div>
+</header>
 
         <div class="chat-wrapper">
             <!-- SIDEBAR -->
@@ -132,7 +134,8 @@
             onValue,
             push,
             get,
-            set
+            set,
+            update
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -176,6 +179,48 @@
             return div.innerHTML;
         }
 
+        // ===== PROFILE PHOTO UPLOAD =====
+        document.getElementById('myAvatar').onclick = () => {
+            document.getElementById('profileUpload').click();
+        };
+
+        document.getElementById('profileUpload').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ Ukuran file terlalu besar (max 5MB)');
+                    return;
+                }
+
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('❌ File harus berupa gambar');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const base64Image = event.target.result;
+                        
+                        // Update UI langsung
+                        document.getElementById('myAvatar').src = base64Image;
+                        
+                        // Simpan ke Database
+                        const userRef = ref(database, 'users/' + currentUser.uid);
+                        await update(userRef, { photoURL: base64Image });
+                        
+                        console.log('✅ Foto profil berhasil diperbarui');
+                    } catch (error) {
+                        console.error('❌ Error uploading photo:', error);
+                        alert('❌ Gagal mengupload foto: ' + error.message);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
         // ===== AUTH CHECK =====
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -200,6 +245,12 @@
                     const userData = snapshot.val();
                     currentUserName = userData.fullname || userData.email.split('@')[0];
                     document.getElementById('currentUserName').textContent = currentUserName;
+                    
+                    // Load profile photo
+                    if (userData.photoURL) {
+                        document.getElementById('myAvatar').src = userData.photoURL;
+                    }
+                    
                     console.log('✅ Current user loaded:', currentUserName);
                 } else {
                     // PERBAIKAN: Handle jika data tidak ada
@@ -210,7 +261,8 @@
                     set(userRef, {
                         fullname: currentUserName,
                         email: currentUser.email,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        photoURL: 'https://via.placeholder.com/40'
                     }).catch(err => console.error('Error saving user:', err));
                 }
             }, (error) => {
@@ -232,7 +284,8 @@
                                 allUsers.push({
                                     uid: userId,
                                     name: userData.fullname,
-                                    email: userData.email
+                                    email: userData.email,
+                                    photoURL: userData.photoURL || 'https://via.placeholder.com/40'
                                 });
                             }
                         }
@@ -261,9 +314,9 @@
             allUsers.forEach(user => {
                 const userElement = document.createElement('div');
                 userElement.className = 'user-item';
-                userElement.onclick = () => selectUser(user.uid, user.name);
+                userElement.onclick = () => selectUser(user.uid, user.name, user.photoURL);
                 userElement.innerHTML = `
-                    <div class="user-item-avatar">👤</div>
+                    <img src="${user.photoURL}" class="user-item-avatar" alt="${escapeHtml(user.name)}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
                     <div class="user-item-info">
                         <h4>${escapeHtml(user.name)}</h4>
                         <p class="user-email">${escapeHtml(user.email)}</p>
@@ -274,15 +327,21 @@
         }
 
         // Select user untuk chat (PERBAIKAN: Cleanup listener sebelum load baru)
-        window.selectUser = function(userId, userName) {
+        window.selectUser = function(userId, userName, photoURL) {
             selectedUserId = userId;
             document.getElementById('chatUserName').textContent = escapeHtml(userName);
-            document.getElementById('chatUserAvatar').textContent = '👤';
+            const chatUserAvatar = document.getElementById('chatUserAvatar');
+            chatUserAvatar.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = photoURL || 'https://via.placeholder.com/40';
+            img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+            chatUserAvatar.appendChild(img);
             document.getElementById('userStatus').textContent = 'online';
             document.getElementById('welcomeMessage').style.display = 'none';
             document.getElementById('chatWindow').style.display = 'flex';
             document.getElementById('messagesArea').innerHTML = ''; // Clear previous messages
             loadMessages();
+            markAsRead(generateChatId(currentUser.uid, selectedUserId));
         };
 
         // Load messages (PERBAIKAN: Unsubscribe sebelum subscribe baru)
@@ -308,7 +367,10 @@
                 let messages = [];
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
-                        messages.push(childSnapshot.val());
+                        messages.push({
+                            key: childSnapshot.key,
+                            ...childSnapshot.val()
+                        });
                     });
                 }
 
@@ -321,10 +383,23 @@
                     messages.forEach(msg => {
                         const messageElement = document.createElement('div');
                         messageElement.className = `message ${msg.senderId === currentUser.uid ? 'sent' : 'received'}`;
+                        
+                        // Format waktu
+                        const timeStr = formatTime(msg.timestamp);
+                        
+                        // Tampilkan status baca untuk pesan yang dikirim
+                        let statusHtml = '';
+                        if (msg.senderId === currentUser.uid) {
+                            statusHtml = `<span class="message-status"><span class="tick ${msg.isRead ? 'read' : ''}">✔✔</span></span>`;
+                        }
+                        
                         messageElement.innerHTML = `
                             <div class="message-bubble">
                                 <p>${escapeHtml(msg.text)}</p>
-                                <span class="message-time">${formatTime(msg.timestamp)}</span>
+                                <span class="message-time">
+                                    ${timeStr}
+                                    ${statusHtml}
+                                </span>
                             </div>
                         `;
                         messagesArea.appendChild(messageElement);
@@ -362,7 +437,8 @@
                 senderId: currentUser.uid,
                 senderName: currentUserName,
                 text: text,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                isRead: false
             };
 
             push(messagesRef, messageData)
@@ -384,6 +460,22 @@
                 sendMessage();
             }
         };
+
+        // Mark messages as read
+        function markAsRead(chatId) {
+            const messagesRef = ref(database, `chats/${chatId}/messages`);
+            get(messagesRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        const msg = child.val();
+                        // Tandai pesan dari user lain sebagai sudah dibaca
+                        if (msg.senderId !== currentUser.uid && !msg.isRead) {
+                            update(ref(database, `chats/${chatId}/messages/${child.key}`), { isRead: true });
+                        }
+                    });
+                }
+            }).catch(err => console.error('❌ Error marking as read:', err));
+        }
 
         // Close chat
         window.closeChat = function() {
@@ -417,9 +509,9 @@
             filtered.forEach(user => {
                 const userElement = document.createElement('div');
                 userElement.className = 'user-item';
-                userElement.onclick = () => selectUser(user.uid, user.name);
+                userElement.onclick = () => selectUser(user.uid, user.name, user.photoURL);
                 userElement.innerHTML = `
-                    <div class="user-item-avatar">👤</div>
+                    <img src="${user.photoURL}" class="user-item-avatar" alt="${escapeHtml(user.name)}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
                     <div class="user-item-info">
                         <h4>${escapeHtml(user.name)}</h4>
                         <p class="user-email">${escapeHtml(user.email)}</p>
@@ -431,13 +523,13 @@
 
         // Open new chat modal
         window.openNewChat = function() {
-            document.getElementById('newChatModal').style.display = 'flex';
+            document.getElementById('newChatModal').classList.add('show');
             populateModalUsers();
         };
 
         // Close new chat modal
         window.closeNewChat = function() {
-            document.getElementById('newChatModal').style.display = 'none';
+            document.getElementById('newChatModal').classList.remove('show');
             document.getElementById('modalSearchUsers').value = '';
         };
 
@@ -455,11 +547,11 @@
                 const userElement = document.createElement('div');
                 userElement.className = 'modal-user-item';
                 userElement.onclick = () => {
-                    selectUser(user.uid, user.name);
+                    selectUser(user.uid, user.name, user.photoURL);
                     closeNewChat();
                 };
                 userElement.innerHTML = `
-                    <div class="user-item-avatar">👤</div>
+                    <img src="${user.photoURL}" class="user-item-avatar" alt="${escapeHtml(user.name)}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
                     <div class="user-item-info">
                         <h4>${escapeHtml(user.name)}</h4>
                         <p>${escapeHtml(user.email)}</p>
@@ -489,11 +581,11 @@
                 const userElement = document.createElement('div');
                 userElement.className = 'modal-user-item';
                 userElement.onclick = () => {
-                    selectUser(user.uid, user.name);
+                    selectUser(user.uid, user.name, user.photoURL);
                     closeNewChat();
                 };
                 userElement.innerHTML = `
-                    <div class="user-item-avatar">👤</div>
+                    <img src="${user.photoURL}" class="user-item-avatar" alt="${escapeHtml(user.name)}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
                     <div class="user-item-info">
                         <h4>${escapeHtml(user.name)}</h4>
                         <p>${escapeHtml(user.email)}</p>
@@ -516,6 +608,14 @@
                     console.error('❌ Error saat logout:', error);
                     alert('❌ Error saat logout: ' + error.message);
                 });
+            }
+        };
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('newChatModal');
+            if (event.target === modal) {
+                closeNewChat();
             }
         };
 
