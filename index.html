@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <img class="image-gradient" src="gradient.png" alt="gradient" onerror="this.style.display='none'">
+    <!-- REMOVE GRADIENT IMAGE - GUNAKAN CSS GRADIENT SAJA -->
     <div class="layer-blur"></div>
 
     <div class="container">
@@ -286,6 +286,7 @@ getRedirectResult(auth)
         if (result) {
             const user = result.user;
             currentUserId = user.uid;
+            console.log('✅ Google Sign-In Redirect Success:', user.email);
 
             // Simpan data user ke database jika belum ada
             const userRef = ref(database, 'users/' + user.uid);
@@ -295,7 +296,11 @@ getRedirectResult(auth)
                         fullname: user.displayName || user.email.split('@')[0],
                         email: user.email,
                         createdAt: new Date().toISOString(),
-                        photoURL: 'https://via.placeholder.com/40'
+                        photoURL: user.photoURL || 'https://via.placeholder.com/40'
+                    }).then(() => {
+                        console.log('✅ User data saved to database');
+                    }).catch(err => {
+                        console.error('❌ Error saving user data:', err);
                     });
                     document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
                 } else {
@@ -310,8 +315,8 @@ getRedirectResult(auth)
                 toggleAuthModal();
                 switchTab("profile");
             }).catch(err => {
-                console.error('Error checking user:', err);
-                alert('Error: ' + err.message);
+                console.error('❌ Error checking user:', err);
+                alert('❌ Error: ' + err.message);
             });
         }
     })
@@ -464,6 +469,7 @@ window.signUpWithGoogle = async function (event) {
         
         // Use redirect instead of popup (compatible dengan GitHub Pages)
         await signInWithRedirect(auth, provider);
+        console.log('✅ Redirect initiated');
         
     } catch (error) {
         console.error('❌ Google Sign-In error:', error);
@@ -563,6 +569,7 @@ onAuthStateChanged(auth, (user) => {
     const authBtn = document.getElementById("headerAuthBtn");
     if (user) {
         currentUserId = user.uid;
+        console.log('✅ User already authenticated:', user.email);
         authBtn.textContent = "PROFILE";
         authBtn.onclick = function() {
             document.getElementById("authModal").classList.add("active");
