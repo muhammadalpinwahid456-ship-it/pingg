@@ -2,29 +2,31 @@
   "rules": {
     "users": {
       ".read": "auth != null",
+      ".write": "auth != null",
       "$uid": {
         ".read": "auth != null",
-        ".write": "$uid === auth.uid",
-        ".validate": "data.exists() ? (newData.hasChildren(['fullname', 'email']) || newData.child('photoURL').exists() || newData.child('description').exists()) : newData.hasChildren(['fullname', 'email'])",
+        ".write": "$uid === auth.uid || auth != null",
+        ".validate": "newData.hasChildren(['fullname', 'email'])",
         "fullname": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
         },
         "email": {
           ".validate": "newData.isString() && newData.val().contains('@')"
         },
-        "createdAt": {
-          ".validate": "newData.isString()"
-        },
         "photoURL": {
-          ".validate": "newData.isString()"
+          ".validate": "newData.isString() || !newData.exists()"
         },
         "description": {
-          ".validate": "newData.isString() && newData.val().length <= 150"
+          ".validate": "newData.isString() && newData.val().length <= 150 || !newData.exists()"
+        },
+        "createdAt": {
+          ".validate": "newData.isString() || !newData.exists()"
         }
       }
     },
     "reels": {
       ".read": "auth != null",
+      ".write": "auth != null",
       "$reelId": {
         ".read": "auth != null",
         ".write": "auth != null",
@@ -107,7 +109,7 @@
               ".validate": "newData.isNumber()"
             },
             "isRead": {
-              ".validate": "newData.isBoolean()"
+              ".validate": "newData.isBoolean() || !newData.exists()"
             }
           }
         }

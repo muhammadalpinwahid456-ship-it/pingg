@@ -117,7 +117,8 @@
             ref,
             onValue,
             get,
-            update
+            update,
+            set
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -146,6 +147,10 @@
                 currentUser = user;
                 document.getElementById('authCheck').style.display = 'none';
                 document.getElementById('profileContainer').style.display = 'block';
+                console.log('✅ User logged in:', user.uid);
+                
+                // PERBAIKAN: Pastikan user data ada di database
+                ensureUserDataExists(user);
                 loadUserProfile();
                 loadUserReels();
             } else {
@@ -156,7 +161,33 @@
             }
         });
 
-        // Load user profile (DIPERBAIKI: Realtime listener)
+        // PERBAIKAN: Pastikan data user ada di database untuk user baru
+        function ensureUserDataExists(user) {
+            const userRef = ref(database, 'users/' + user.uid);
+            get(userRef).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log('📝 Creating new user data...');
+                    // Jika user baru, buat data default
+                    set(userRef, {
+                        fullname: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        photoURL: 'https://via.placeholder.com/150',
+                        description: '',
+                        createdAt: new Date().toISOString()
+                    }).then(() => {
+                        console.log('✅ User data created successfully');
+                    }).catch(err => {
+                        console.error('❌ Error creating user data:', err);
+                    });
+                } else {
+                    console.log('✅ User data already exists');
+                }
+            }).catch(err => {
+                console.error('❌ Error checking user data:', err);
+            });
+        }
+
+        // Load user profile (DIPERBAIKI: Realtime listener dengan fallback)
         function loadUserProfile() {
             const userRef = ref(database, 'users/' + currentUser.uid);
             
@@ -165,18 +196,32 @@
             userProfileUnsubscribe = onValue(userRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
-                    document.getElementById('profileName').textContent = userData.fullname || 'User';
-                    document.getElementById('profileDesc').textContent = userData.description || 'Belum ada deskripsi';
                     
-                    if (userData.photoURL) {
-                        document.getElementById('profilePic').src = userData.photoURL;
-                    }
+                    // Update UI dengan data yang ada
+                    const fullname = userData.fullname || 'User';
+                    const description = userData.description || 'Belum ada deskripsi';
+                    const photoURL = userData.photoURL || 'https://via.placeholder.com/150';
+                    
+                    document.getElementById('profileName').textContent = fullname;
+                    document.getElementById('profileDesc').textContent = description;
+                    document.getElementById('profilePic').src = photoURL;
 
-                    document.getElementById('editName').value = userData.fullname || '';
+                    // Update form inputs
+                    document.getElementById('editName').value = fullname;
                     document.getElementById('editDesc').value = userData.description || '';
                     document.getElementById('descCount').textContent = (userData.description || '').length;
                     
-                    console.log('✅ Profile loaded:', userData.fullname);
+                    console.log('✅ Profile loaded:', fullname);
+                } else {
+                    console.warn('⚠️ User data not found, creating default data...');
+                    // Jika data tidak ada, buat data default
+                    set(userRef, {
+                        fullname: currentUser.displayName || currentUser.email.split('@')[0],
+                        email: currentUser.email,
+                        photoURL: 'https://via.placeholder.com/150',
+                        description: '',
+                        createdAt: new Date().toISOString()
+                    }).catch(err => console.error('Error creating default data:', err));
                 }
             }, (error) => {
                 console.error('❌ Error loading profile:', error);
@@ -219,7 +264,7 @@
             gallery.innerHTML = '';
 
             if (userReels.length === 0) {
-                gallery.innerHTML = '<p class="no-reels">Anda belum upload reels. <a href="reels.Html">Upload sekarang!</a></p>';
+                gallery.innerHTML = '<p class="no-reels">Anda belum upload reels. <a href="reels.html">Upload sekarang!</a></p>';
                 return;
             }
 
@@ -312,7 +357,7 @@
             document.getElementById('descCount').textContent = this.value.length;
         });
 
-        // Edit form submit
+        // Edit form submit (PERBAIKAN: Better error handling)
         document.getElementById('editForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -324,19 +369,40 @@
                 return;
             }
 
+            if (name.length < 3) {
+                alert('⚠️ Nama minimal 3 karakter');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Menyimpan...';
+
             try {
+                console.log('🔄 Updating profile...');
                 const userRef = ref(database, 'users/' + currentUser.uid);
                 await update(userRef, {
                     fullname: name,
                     description: description
                 });
 
+                console.log('✅ Profile updated successfully');
                 alert('✅ Profile berhasil diperbarui!');
                 closeEditModal();
-                console.log('✅ Profile updated');
             } catch (error) {
-                alert('❌ Error: ' + error.message);
-                console.error('Profile update error:', error);
+                console.error('❌ Profile update error:', error);
+                
+                // PERBAIKAN: Specific error handling
+                if (error.code === 'PERMISSION_DENIED') {
+                    alert('❌ Tidak ada izin untuk mengubah profil. Silakan logout dan login kembali.');
+                } else {
+                    alert('❌ Error: ' + error.message);
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 
