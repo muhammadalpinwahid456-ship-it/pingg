@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <img class="image-gradient" src="gradient.png" alt="gradient">
+    <img class="image-gradient" src="gradient.png" alt="gradient" onerror="this.style.display='none'">
     <div class="layer-blur"></div>
 
     <div class="container">
@@ -294,7 +294,8 @@ getRedirectResult(auth)
                     set(userRef, {
                         fullname: user.displayName || user.email.split('@')[0],
                         email: user.email,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        photoURL: 'https://via.placeholder.com/40'
                     });
                     document.getElementById("profileName").textContent = user.displayName || user.email.split('@')[0];
                 } else {
@@ -322,38 +323,68 @@ getRedirectResult(auth)
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const name = document.getElementById("registerName").value;
-    const email = document.getElementById("registerEmail").value;
+    const name = document.getElementById("registerName").value.trim();
+    const email = document.getElementById("registerEmail").value.trim();
     const password = document.getElementById("registerPassword").value;
     const confirmPassword = document.getElementById("registerConfirmPassword").value;
 
+    // Validasi
+    if (!name || name.length < 3) {
+        alert("⚠️ Nama minimal 3 karakter!");
+        return;
+    }
+
+    if (password.length < 6) {
+        alert("⚠️ Password minimal 6 karakter!");
+        return;
+    }
+
     if (password !== confirmPassword) {
-        alert("Password tidak sama!");
+        alert("⚠️ Password tidak sama!");
         return;
     }
 
     try {
+        console.log('📝 Registering user with email:', email);
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         currentUserId = user.uid;
 
+        console.log('✅ User created:', user.uid);
+
         // Simpan data user ke database
-        await set(ref(database, 'users/' + user.uid), {
+        const userData = {
             fullname: name,
             email: email,
-            createdAt: new Date().toISOString()
-        });
+            createdAt: new Date().toISOString(),
+            photoURL: 'https://via.placeholder.com/40',
+            description: ''
+        };
 
-        alert("Akun berhasil dibuat!");
+        await set(ref(database, 'users/' + user.uid), userData);
+        console.log('✅ User data saved to database');
+
+        alert("✅ Akun berhasil dibuat! Silakan login.");
 
         document.getElementById("profileName").textContent = name;
         document.getElementById("profileEmail").textContent = email;
         document.getElementById("profileDate").textContent = new Date().toLocaleDateString('id-ID');
 
-        switchTab("profile");
+        document.getElementById("registerForm").reset();
+        switchTab("login");
 
     } catch (error) {
-        alert(error.message);
+        console.error('❌ Register error:', error);
+        
+        if (error.code === 'auth/email-already-in-use') {
+            alert('❌ Email sudah terdaftar');
+        } else if (error.code === 'auth/weak-password') {
+            alert('❌ Password terlalu lemah');
+        } else if (error.code === 'auth/invalid-email') {
+            alert('❌ Format email tidak valid');
+        } else {
+            alert('❌ Error: ' + error.message);
+        }
     }
 });
 
@@ -361,13 +392,21 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById("loginEmail").value;
+    const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
 
+    if (!email || !password) {
+        alert("⚠️ Email dan password harus diisi!");
+        return;
+    }
+
     try {
+        console.log('🔐 Logging in with email:', email);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         currentUserId = user.uid;
+
+        console.log('✅ Login berhasil:', user.uid);
 
         // Load data dari database
         const userRef = ref(database, 'users/' + user.uid);
@@ -379,10 +418,21 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             document.getElementById("profileDate").textContent = new Date(userData.createdAt).toLocaleDateString('id-ID');
         }
         
-        alert("Login berhasil!");
+        alert("✅ Login berhasil!");
+        document.getElementById("loginForm").reset();
         switchTab("profile");
     } catch (error) {
-        alert(error.message);
+        console.error('❌ Login error:', error);
+        
+        if (error.code === 'auth/user-not-found') {
+            alert('❌ Email tidak terdaftar');
+        } else if (error.code === 'auth/wrong-password') {
+            alert('❌ Password salah');
+        } else if (error.code === 'auth/invalid-email') {
+            alert('❌ Format email tidak valid');
+        } else {
+            alert('❌ Error: ' + error.message);
+        }
     }
 });
 
@@ -418,7 +468,7 @@ window.signUpWithGoogle = async function (event) {
 window.logout = async function () {
     if (confirm('Apakah Anda yakin ingin logout?')) {
         await signOut(auth);
-        alert("Logout berhasil!");
+        alert("✅ Logout berhasil!");
         currentUserId = null;
         switchTab("login");
     }
@@ -516,7 +566,8 @@ onAuthStateChanged(auth, (user) => {
 
 // ================= MODAL =================
 window.toggleAuthModal = function () {
-    document.getElementById("authModal").classList.toggle("active");
+    const modal = document.getElementById("authModal");
+    modal.classList.toggle("active");
 };
 
 // ================= SWITCH TAB =================
