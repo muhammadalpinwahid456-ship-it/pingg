@@ -32,7 +32,7 @@
         </header>
 
         <!-- LOADING SPINNER -->
-        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div id="loadingSpinner" class="loading-spinner">
             <div class="spinner"></div>
             <p>Loading reels...</p>
         </div>
@@ -182,29 +182,26 @@
         let currentUserData = null;
         let reelsUnsubscribe = null;
         let commentsUnsubscribe = null;
-        let loadingStartTime = null;
-        let loadTimeout = null;
+        let loadingTimeout = null;
 
         // ===== AUTH CHECK =====
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                console.log('✅ User authenticated:', user.uid);
+                console.log('✅ User authenticated:', user.email);
                 document.getElementById('authCheck').style.display = 'none';
-                document.getElementById('loadingSpinner').style.display = 'flex';
-                loadingStartTime = Date.now();
+                document.getElementById('reelsContainer').style.display = 'flex';
                 
-                // Set timeout untuk loading spinner (10 detik max)
-                loadTimeout = setTimeout(() => {
-                    console.warn('⚠️ Loading timeout triggered');
+                // Set timeout 10 detik
+                loadingTimeout = setTimeout(() => {
+                    console.warn('⏱️ Loading timeout - force show');
                     document.getElementById('loadingSpinner').style.display = 'none';
                     document.getElementById('reelsMain').style.display = 'flex';
                 }, 10000);
-
+                
                 loadCurrentUser();
                 loadAllReels();
             } else {
-                console.log('❌ User not authenticated');
                 document.getElementById('authCheck').style.display = 'flex';
                 document.getElementById('reelsContainer').style.display = 'none';
                 if (reelsUnsubscribe) reelsUnsubscribe();
@@ -230,12 +227,12 @@
                         photoURL: currentUserData.photoURL,
                         email: currentUser.email,
                         createdAt: new Date().toISOString()
-                    });
+                    }).catch(err => console.error('Error saving user:', err));
                 }
-            }).catch(err => console.error('❌ Error loading current user:', err));
+            }).catch(err => console.error('Error loading user:', err));
         }
 
-        // Load semua reels dengan error handling
+        // Load semua reels
         function loadAllReels() {
             console.log('📡 Starting to load reels...');
             const reelsRef = ref(database, 'reels');
@@ -245,53 +242,47 @@
             }
 
             reelsUnsubscribe = onValue(reelsRef, (snapshot) => {
-                console.log('📦 Reels snapshot received');
                 allReels = [];
-                
                 if (snapshot.exists()) {
-                    const reelsData = snapshot.val();
-                    console.log('📊 Total reels in database:', Object.keys(reelsData).length);
-                    
-                    for (const reelId in reelsData) {
-                        const reelData = reelsData[reelId];
-                        if (reelData && reelData.mediaUrl && reelData.mediaType) {
+                    snapshot.forEach((childSnapshot) => {
+                        const reelId = childSnapshot.key;
+                        const reelData = childSnapshot.val();
+                        if (reelData.mediaUrl && reelData.mediaType) {
                             allReels.push({
                                 id: reelId,
                                 ...reelData
                             });
                         }
-                    }
-                    
+                    });
                     allReels.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    console.log('✅ Valid reels loaded:', allReels.length);
+                    console.log('✅ Total reels loaded:', allReels.length);
                 } else {
                     console.log('ℹ️ No reels found in database');
                 }
                 
-                // Clear timeout & hide loading
-                if (loadTimeout) clearTimeout(loadTimeout);
+                // Clear timeout
+                if (loadingTimeout) clearTimeout(loadingTimeout);
                 
-                const loadingTime = Date.now() - loadingStartTime;
-                console.log(`⏱️ Loading completed in ${loadingTime}ms`);
-                
+                // Hide spinner dan show reels
+                console.log('🎬 Displaying reels...');
                 document.getElementById('loadingSpinner').style.display = 'none';
-                document.getElementById('reelsContainer').style.display = 'block';
                 document.getElementById('reelsMain').style.display = 'flex';
                 
                 displayReels();
+                
                 if (allReels.length > 0) {
                     playCurrentVideo();
                 }
             }, (error) => {
                 console.error('❌ Error loading reels:', error);
-                if (loadTimeout) clearTimeout(loadTimeout);
+                if (loadingTimeout) clearTimeout(loadingTimeout);
                 document.getElementById('loadingSpinner').style.display = 'none';
                 document.getElementById('reelsMain').style.display = 'flex';
                 alert('❌ Error loading reels: ' + error.message);
             });
         }
 
-        // Display reels dengan id unik
+        // Display reels
         function displayReels() {
             const carousel = document.getElementById('reelsCarousel');
             carousel.innerHTML = '';
@@ -301,16 +292,14 @@
                 return;
             }
 
-            console.log(`🎬 Displaying ${allReels.length} reels`);
-
             allReels.forEach((reel, index) => {
                 const reelElement = document.createElement('div');
                 reelElement.className = `reel-card ${index === currentReelIndex ? 'active' : ''}`;
                 
                 const videoId = `video-${reel.id}`;
                 const mediaHtml = reel.mediaType === 'video' 
-                    ? `<video id="${videoId}" src="${reel.mediaUrl}" preload="metadata" playsinline style="width: 100%; height: 100%; object-fit: contain;" onerror="handleVideoError(this)"></video>`
-                    : `<img id="${videoId}" src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: contain;" onerror="handleImageError(this)">`
+                    ? `<video id="${videoId}" src="${reel.mediaUrl}" preload="auto" playsinline style="width: 100%; height: 100%; object-fit: contain;" onerror="handleVideoError(this)"></video>`
+                    : `<img src="${reel.mediaUrl}" alt="reel" style="width: 100%; height: 100%; object-fit: contain;" onerror="handleImageError(this)">`
 
                 reelElement.innerHTML = `
                     <div class="reel-media">
@@ -330,7 +319,7 @@
             updateUI();
         }
 
-        // Play current video + pause yang lain
+        // Play current video
         function playCurrentVideo() {
             if (allReels.length === 0) return;
 
@@ -343,6 +332,7 @@
                 video.volume = 1;
             });
 
+            // Play video yang aktif
             const videoId = `video-${currentReel.id}`;
             const videoElement = document.getElementById(videoId);
             
@@ -350,14 +340,14 @@
                 setTimeout(() => {
                     videoElement.muted = false;
                     videoElement.volume = 1;
-                    videoElement.play().catch(err => console.warn('Play error:', err));
+                    videoElement.play().catch(err => console.error('Play error:', err));
                 }, 100);
             }
 
             loadComments();
         }
 
-        // Update UI untuk like dan comment count
+        // Update UI
         function updateUI() {
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
@@ -371,7 +361,7 @@
             document.getElementById('commentCount').textContent = Object.keys(currentReel.comments || {}).length;
         }
 
-        // Load comments dengan real-time listener
+        // Load comments
         function loadComments() {
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
@@ -513,7 +503,7 @@
             }
         };
 
-        // Prev reel
+        // Previous reel
         window.previousReel = function(event) {
             if (event) event.stopPropagation();
             
@@ -683,7 +673,6 @@
         // Logout
         window.logoutReels = function() {
             if (confirm('Apakah Anda yakin ingin logout?')) {
-                if (loadTimeout) clearTimeout(loadTimeout);
                 if (reelsUnsubscribe) reelsUnsubscribe();
                 if (commentsUnsubscribe) commentsUnsubscribe();
                 signOut(auth).then(() => {
