@@ -43,7 +43,7 @@
 
                 <div class="profile-info">
                     <h2 id="profileName">User Name</h2>
-                    <p id="profileDesc" class="profile-desc">Ini adalah deskripsi profil Anda</p>
+                    <p id="profileDesc" class="profile-desc">Belum ada deskripsi</p>
                     
                     <div class="profile-stats">
                         <div class="stat">
@@ -142,13 +142,11 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                console.log('✅ User logged in:', user.email);
                 document.getElementById('authCheck').style.display = 'none';
                 document.getElementById('profileContainer').style.display = 'block';
                 loadUserProfile();
                 loadUserReels();
             } else {
-                console.log('❌ User not logged in');
                 document.getElementById('authCheck').style.display = 'flex';
                 document.getElementById('profileContainer').style.display = 'none';
             }
@@ -160,8 +158,6 @@
             onValue(userRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
-                    console.log('✅ Profile loaded:', userData.fullname);
-                    
                     document.getElementById('profileName').textContent = userData.fullname || 'User';
                     document.getElementById('profileDesc').textContent = userData.description || 'Belum ada deskripsi';
                     
@@ -169,15 +165,10 @@
                         document.getElementById('profilePic').src = userData.photoURL;
                     }
 
-                    // Populate edit form
                     document.getElementById('editName').value = userData.fullname || '';
                     document.getElementById('editDesc').value = userData.description || '';
                     document.getElementById('descCount').textContent = (userData.description || '').length;
-                } else {
-                    console.warn('⚠️ User profile not found');
                 }
-            }, (error) => {
-                console.error('❌ Error loading profile:', error);
             });
         }
 
@@ -196,12 +187,9 @@
                             });
                         }
                     });
-                    console.log('✅ User reels loaded:', userReels.length);
                 }
                 displayUserReels();
                 updateStats();
-            }, (error) => {
-                console.error('❌ Error loading reels:', error);
             });
         }
 
@@ -224,7 +212,6 @@
                     : `<img src="${reel.mediaUrl}" alt="reel">`;
 
                 const likeCount = Object.keys(reel.likes || {}).length;
-                const commentCount = Object.keys(reel.comments || {}).length;
 
                 galleryItem.innerHTML = `
                     <div class="gallery-media">
@@ -232,7 +219,7 @@
                         <div class="gallery-overlay">
                             <div class="gallery-stats">
                                 <span>❤️ ${likeCount}</span>
-                                <span>💬 ${commentCount}</span>
+                                <span>💬 ${Object.keys(reel.comments || {}).length}</span>
                             </div>
                         </div>
                     </div>
@@ -263,12 +250,6 @@
         document.getElementById('photoUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                // Validate file size
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('❌ File terlalu besar (max 5MB)');
-                    return;
-                }
-
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     try {
@@ -278,7 +259,6 @@
                         document.getElementById('profilePic').src = photoURL;
                         alert('✅ Foto profil berhasil diperbarui!');
                     } catch (error) {
-                        console.error('❌ Error:', error);
                         alert('❌ Error: ' + error.message);
                     }
                 };
@@ -309,18 +289,9 @@
             const description = document.getElementById('editDesc').value.trim();
 
             if (!name) {
-                alert('⚠️ Nama tidak boleh kosong');
+                alert('Nama tidak boleh kosong');
                 return;
             }
-
-            if (name.length < 3) {
-                alert('⚠️ Nama minimal 3 karakter');
-                return;
-            }
-
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Menyimpan...';
 
             try {
                 const userRef = ref(database, 'users/' + currentUser.uid);
@@ -333,11 +304,7 @@
                 closeEditModal();
                 loadUserProfile();
             } catch (error) {
-                console.error('❌ Error:', error);
                 alert('❌ Error: ' + error.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Simpan Perubahan';
             }
         });
 
@@ -346,10 +313,7 @@
             if (confirm('Apakah Anda yakin ingin logout?')) {
                 signOut(auth).then(() => {
                     window.location.href = 'index.html';
-                }).catch(err => {
-                    console.error('❌ Error:', err);
-                    alert('❌ Error: ' + err.message);
-                });
+                }).catch(err => alert('❌ Error: ' + err.message));
             }
         };
 
