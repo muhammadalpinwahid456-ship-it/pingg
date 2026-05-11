@@ -46,11 +46,11 @@
             <!-- SIDEBAR ACTIONS -->
             <div class="reels-sidebar">
                 <div class="action-group">
-                    <button class="action-btn like-btn" id="likeBtn" onclick="toggleLike()">
+                    <button class="action-btn like-btn" id="likeBtn" onclick="toggleLike(event)">
                         <span class="icon">♡</span>
                         <span class="count" id="likeCount">0</span>
                     </button>
-                    <button class="action-btn comment-btn" onclick="toggleComments()">
+                    <button class="action-btn comment-btn" onclick="toggleComments(event)">
                         <span class="icon">💬</span>
                         <span class="count" id="commentCount">0</span>
                     </button>
@@ -62,7 +62,7 @@
         <div id="commentsPanel" class="comments-panel" style="display: none;">
             <div class="comments-header">
                 <h3>Komentar</h3>
-                <button class="close-comments" onclick="toggleComments()">✕</button>
+                <button class="close-comments" onclick="toggleComments(event)">✕</button>
             </div>
             <div class="comments-list" id="commentsList">
                 <!-- Comments akan ditampilkan di sini -->
@@ -215,7 +215,7 @@
             });
         }
 
-        // Load semua reels (Real-time listener)
+        // Load semua reels
         function loadAllReels() {
             const reelsRef = ref(database, 'reels');
             
@@ -245,7 +245,7 @@
             });
         }
 
-        // Display reels (PERBAIKAN: Tanpa play/pause button di tengah)
+        // Display reels
         function displayReels() {
             const carousel = document.getElementById('reelsCarousel');
             carousel.innerHTML = '';
@@ -260,7 +260,7 @@
                 reelElement.className = `reel-card ${index === currentReelIndex ? 'active' : ''}`;
                 
                 const mediaHtml = reel.mediaType === 'video' 
-                    ? `<video id="video-${index}" src="${reel.mediaUrl}" controls preload="auto" playsinline style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" onerror="handleVideoError(this)"></video>`
+                    ? `<video id="video-${index}" src="${reel.mediaUrl}" preload="auto" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" onerror="handleVideoError(this)"></video>`
                     : `<img src="${reel.mediaUrl}" alt="reel" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" onerror="handleImageError(this)">`
 
                 reelElement.innerHTML = `
@@ -278,19 +278,32 @@
                 carousel.appendChild(reelElement);
             });
 
-            updateUI();
-            playCurrentVideo();
+            // PERBAIKAN: Pause semua video dulu, baru play yang aktif
+            setTimeout(() => {
+                pauseAllVideos();
+                playCurrentVideo();
+                updateUI();
+            }, 100);
         }
 
-        // Play current video
-        function playCurrentVideo() {
+        // Pause semua video
+        function pauseAllVideos() {
             document.querySelectorAll('video').forEach(video => {
                 video.pause();
+                video.muted = false;
             });
+        }
 
+        // Play video saat ini
+        function playCurrentVideo() {
             const videoElement = document.getElementById(`video-${currentReelIndex}`);
             if (videoElement) {
-                videoElement.play().catch(err => console.log('Auto-play prevented:', err));
+                videoElement.muted = false;
+                videoElement.volume = 1;
+                videoElement.play().catch(err => {
+                    console.warn('⚠️ Autoplay tidak bisa jalan:', err);
+                    videoElement.play();
+                });
             }
         }
 
@@ -315,7 +328,7 @@
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
 
-            // Cleanup previous listener
+            // PERBAIKAN: Cleanup listener lama
             if (commentsUnsubscribe) {
                 commentsUnsubscribe();
             }
@@ -326,7 +339,7 @@
                 const commentsList = document.getElementById('commentsList');
                 commentsList.innerHTML = '';
 
-                const commentsArray = [];
+                let commentsArray = [];
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
                         commentsArray.push({
@@ -346,16 +359,16 @@
                 commentsArray.forEach(comment => {
                     const commentElement = document.createElement('div');
                     commentElement.className = 'comment-item';
+                    
                     const timeAgo = getTimeAgo(comment.timestamp);
+                    
                     commentElement.innerHTML = `
                         <div class="comment-user">
                             <img src="${comment.userPhoto || 'https://via.placeholder.com/32'}" alt="user" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                             <div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <h5>${escapeHtml(comment.userName)}</h5>
-                                    <span style="font-size: 0.75rem; color: #8b949e;">${timeAgo}</span>
-                                </div>
+                                <h5>${escapeHtml(comment.userName)}</h5>
                                 <p>${escapeHtml(comment.text)}</p>
+                                <span style="font-size: 0.75rem; color: #6e7681;">${timeAgo}</span>
                             </div>
                         </div>
                     `;
@@ -364,8 +377,6 @@
 
                 // Auto scroll ke bawah
                 commentsList.scrollTop = commentsList.scrollHeight;
-            }, (error) => {
-                console.error('❌ Error loading comments:', error);
             });
         }
 
@@ -378,14 +389,16 @@
             const hours = Math.floor(minutes / 60);
             const days = Math.floor(hours / 24);
 
-            if (days > 0) return `${days}d`;
-            if (hours > 0) return `${hours}h`;
-            if (minutes > 0) return `${minutes}m`;
-            return 'now';
+            if (seconds < 60) return 'baru saja';
+            if (minutes < 60) return `${minutes}m`;
+            if (hours < 24) return `${hours}h`;
+            return `${days}d`;
         }
 
-        // Toggle like
-        window.toggleLike = function() {
+        // Toggle like dengan event.stopPropagation
+        window.toggleLike = function(event) {
+            event.stopPropagation(); // PERBAIKAN: Hentikan event bubbling
+            
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) return;
 
@@ -400,13 +413,15 @@
             }
         };
 
-        // Toggle comments
-        window.toggleComments = function() {
+        // Toggle comments dengan event.stopPropagation
+        window.toggleComments = function(event) {
+            if (event) event.stopPropagation(); // PERBAIKAN: Hentikan event bubbling
+            
             const panel = document.getElementById('commentsPanel');
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
         };
 
-        // Send comment (PERBAIKAN: Real-time validation dan error handling)
+        // Send comment dengan validasi & error handling
         window.sendComment = function() {
             const currentReel = allReels[currentReelIndex];
             if (!currentReel) {
@@ -427,53 +442,57 @@
                 return;
             }
 
-            if (text.length > 500) {
-                alert('⚠️ Komentar maksimal 500 karakter');
-                return;
-            }
-
-            const submitBtn = event.target;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Mengirim...';
+            // PERBAIKAN: Disable button saat loading
+            const sendBtn = document.querySelector('.comment-input-area button');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Mengirim...';
 
             const newCommentRef = push(ref(database, `reels/${currentReel.id}/comments`));
-            set(newCommentRef, {
+            const commentData = {
                 userName: currentUserData.fullname || 'Anonymous',
                 userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/32',
                 text: text,
-                timestamp: Date.now()
-            }).then(() => {
-                console.log('✅ Comment added');
-                commentInput.value = '';
-                commentInput.focus();
-            }).catch(err => {
-                console.error('❌ Error sending comment:', err);
-                alert('❌ Gagal mengirim komentar: ' + err.message);
-            }).finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Kirim';
-            });
+                timestamp: Date.now(),
+                userId: currentUser.uid
+            };
+
+            set(newCommentRef, commentData)
+                .then(() => {
+                    console.log('✅ Comment added successfully');
+                    commentInput.value = '';
+                    commentInput.focus();
+                })
+                .catch((error) => {
+                    console.error('❌ Error adding comment:', error);
+                    alert('❌ Gagal mengirim komentar: ' + error.message);
+                })
+                .finally(() => {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Kirim';
+                });
         };
 
         // Handle comment key press
         window.handleCommentKeyPress = function(event) {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 sendComment();
             }
         };
 
-        // Next reel
+        // Next reel dengan pause semua video
         window.nextReel = function() {
             if (currentReelIndex < allReels.length - 1) {
+                pauseAllVideos(); // PERBAIKAN: Pause sebelum ganti
                 currentReelIndex++;
                 displayReels();
             }
         };
 
-        // Previous reel
+        // Previous reel dengan pause semua video
         window.previousReel = function() {
             if (currentReelIndex > 0) {
+                pauseAllVideos(); // PERBAIKAN: Pause sebelum ganti
                 currentReelIndex--;
                 displayReels();
             }
@@ -524,7 +543,7 @@
             document.getElementById('captionCount').textContent = this.value.length;
         });
 
-        // ===== UPLOAD KE CLOUDINARY =====
+        // Upload ke Cloudinary
         async function uploadToCloudinary(file) {
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
@@ -643,6 +662,7 @@
         // Logout
         window.logoutReels = function() {
             if (confirm('Apakah Anda yakin ingin logout?')) {
+                pauseAllVideos();
                 if (reelsUnsubscribe) reelsUnsubscribe();
                 if (commentsUnsubscribe) commentsUnsubscribe();
                 signOut(auth).then(() => {
