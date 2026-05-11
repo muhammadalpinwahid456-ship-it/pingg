@@ -164,21 +164,25 @@ body {
     display: block;
 }
 
+/* FIXED INFO OVERLAY */
 .reel-info {
-    position: absolute;
-    bottom: 0;
+    position: fixed;
+    bottom: 60px;
     left: 0;
     right: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6), transparent);
-    padding: 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8), rgba(0,0,0,0.5), transparent);
+    padding: 40px 20px 20px 20px;
     color: white;
+    z-index: 12;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .reel-user {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .reel-user img {
@@ -186,6 +190,7 @@ body {
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid #3b82f6;
 }
 
 .reel-user h4 {
@@ -197,6 +202,8 @@ body {
     font-size: 0.9rem;
     line-height: 1.4;
     word-wrap: break-word;
+    margin-top: 8px;
+    color: #e0e6ed;
 }
 
 .no-reels {
@@ -274,15 +281,15 @@ body {
     transform: scale(1.1);
 }
 
-/* SIDEBAR ACTIONS */
+/* SIDEBAR ACTIONS - FIXED POSITION */
 .reels-sidebar {
-    position: absolute;
+    position: fixed;
     right: 20px;
-    bottom: 100px;
+    bottom: 80px;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    z-index: 10;
+    z-index: 14;
 }
 
 .action-group {
@@ -326,13 +333,13 @@ body {
     margin-top: 2px;
 }
 
-/* COMMENTS PANEL */
+/* COMMENTS PANEL - FIXED POSITION */
 .comments-panel {
-    position: absolute;
+    position: fixed;
     right: 0;
-    top: 0;
     bottom: 0;
     width: 350px;
+    height: 50vh;
     background: #161b22;
     border-left: 1px solid #2d333b;
     display: flex;
@@ -701,12 +708,16 @@ body {
 
     .comments-panel {
         width: 100%;
-        right: auto;
-        top: auto;
+        right: 0;
         bottom: 0;
-        max-height: 50vh;
+        height: 40vh;
         border-left: none;
         border-top: 1px solid #2d333b;
+    }
+
+    .reel-info {
+        bottom: 50px;
+        padding: 20px 16px 16px 16px;
     }
 
     .control-btn {
