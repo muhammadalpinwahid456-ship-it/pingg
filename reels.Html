@@ -138,6 +138,12 @@
             update,
             remove
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import {
+            getStorage,
+            ref as storageRef,
+            uploadBytes,
+            getDownloadURL
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDzDRaHEASBWO0dDKOIlvlku3lN01b89iw",
@@ -153,6 +159,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const database = getDatabase(app);
+        const storage = getStorage(app);
 
         let currentUser = null;
         let allReels = [];
@@ -218,7 +225,7 @@
                 reelElement.className = `reel-card ${index === currentReelIndex ? 'active' : ''}`;
                 
                 const mediaHtml = reel.mediaType === 'video' 
-                    ? `<video src="${reel.mediaUrl}"></video>`
+                    ? `<video src="${reel.mediaUrl}" controls style="width: 100%; height: 100%; object-fit: cover;"></video>`
                     : `<img src="${reel.mediaUrl}" alt="reel">`;
 
                 reelElement.innerHTML = `
@@ -408,32 +415,49 @@
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const fileData = event.target.result;
-                    const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+            try {
+                // Show loading
+                const submitBtn = document.querySelector('.btn-upload-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Uploading...';
 
-                    const newReelRef = push(ref(database, 'reels'));
-                    await set(newReelRef, {
-                        userId: currentUser.uid,
-                        userName: currentUserData.fullname,
-                        userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/40',
-                        caption: caption,
-                        mediaUrl: fileData,
-                        mediaType: mediaType,
-                        timestamp: Date.now(),
-                        likes: {},
-                        comments: {}
-                    });
+                const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+                const fileExtension = file.name.split('.').pop();
+                const fileName = `${currentUser.uid}_${Date.now()}.${fileExtension}`;
+                const filePath = `reels/${mediaType}s/${fileName}`;
 
-                    alert('✅ Reels berhasil diupload!');
-                    closeUploadModal();
-                } catch (error) {
-                    alert('❌ Error: ' + error.message);
-                }
-            };
-            reader.readAsDataURL(file);
+                // Upload ke Firebase Storage
+                const fileStorageRef = storageRef(storage, filePath);
+                await uploadBytes(fileStorageRef, file);
+                const downloadURL = await getDownloadURL(fileStorageRef);
+
+                // Simpan metadata ke Database
+                const newReelRef = push(ref(database, 'reels'));
+                await set(newReelRef, {
+                    userId: currentUser.uid,
+                    userName: currentUserData.fullname,
+                    userPhoto: currentUserData.photoURL || 'https://via.placeholder.com/40',
+                    caption: caption,
+                    mediaUrl: downloadURL,
+                    mediaType: mediaType,
+                    timestamp: Date.now(),
+                    likes: {},
+                    comments: {}
+                });
+
+                alert('✅ Reels berhasil diupload!');
+                document.getElementById('uploadForm').reset();
+                document.getElementById('previewArea').innerHTML = '';
+                closeUploadModal();
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload';
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('❌ Error: ' + error.message);
+                const submitBtn = document.querySelector('.btn-upload-submit');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload';
+            }
         });
 
         // Logout

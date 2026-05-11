@@ -208,7 +208,7 @@
                 galleryItem.className = 'gallery-item';
                 
                 const mediaHtml = reel.mediaType === 'video'
-                    ? `<video src="${reel.mediaUrl}"></video>`
+                    ? `<video src="${reel.mediaUrl}" controls style="width: 100%; height: 100%; object-fit: cover;"></video>`
                     : `<img src="${reel.mediaUrl}" alt="reel">`;
 
                 const likeCount = Object.keys(reel.likes || {}).length;
